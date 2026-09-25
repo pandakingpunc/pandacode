@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-🐼 PandaCode — kodlardan yapılmış bir pandanın terminali
+🐼 PandaCode — kodlardan yapılmış bir pandanın terminali (the terminal of a panda made of code)
 
 Çalıştır :  python pandacode.py
-Komutlar :  'yardim' yaz  →  ok tuşlarıyla gez, q ile çık
+Komutlar :  'help' (ya da 'yardim') yaz  →  ok tuşlarıyla gez, q ile çık
+Dil      :  varsayılan İngilizce; 'dil' yazınca Türkçe olur, tekrar yazınca İngilizceye döner
 """
 import ast
 import base64
@@ -46,7 +47,7 @@ try:
 except (AttributeError, ValueError):
     pass
 
-SURUM = "2.0"
+SURUM = "2.1"
 
 # ═══════════════════════════════ RENKLER ═══════════════════════════════
 RESET = "\033[0m"
@@ -72,6 +73,8 @@ TEMALAR = {
     "sari": ("\033[93m", "\033[33m"),
     "camgobegi": ("\033[96m", "\033[36m"),
 }
+TEMA_ADLARI = {"yesil": "green", "mavi": "blue", "mor": "purple", "kirmizi": "red", "sari": "yellow",
+               "camgobegi": "cyan"}  # temaların İngilizce adları
 
 
 class T:
@@ -183,6 +186,17 @@ def terminal_mi():
     return sys.stdin.isatty() and sys.stdout.isatty()
 
 
+# ═══════════════════════════ DİL: İNGİLİZCE / TÜRKÇE ═══════════════════════════
+def dil():
+    """Aktif dil: 'en' (varsayılan) ya da 'tr'. 'dil' komutuyla değişir, VERI içinde saklanır."""
+    return "tr" if VERI.get("dil") == "tr" else "en"
+
+
+def tr_en(tr, en):
+    """Aktif dile göre Türkçesini ya da İngilizcesini seçer: tr_en("Merhaba", "Hello")"""
+    return tr if dil() == "tr" else en
+
+
 # ═══════════════════════════ TÜRKÇE YARDIMCILARI ═══════════════════════════
 TR_SADE = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
 
@@ -198,6 +212,15 @@ def tr_buyuk(metin):
 
 def tr_kucuk(metin):
     return metin.replace("I", "ı").replace("İ", "i").lower()
+
+
+def buyuk_harf(metin):
+    """Dile göre büyük harf: Türkçede 'i' → 'İ', İngilizcede 'i' → 'I'."""
+    return tr_buyuk(metin) if dil() == "tr" else metin.upper()
+
+
+def kucuk_harf(metin):
+    return tr_kucuk(metin) if dil() == "tr" else metin.lower()
 
 
 def sayi(metin):
@@ -219,8 +242,9 @@ def sure_yaz(saniye):
     gun, saniye = divmod(saniye, 86400)
     saat, saniye = divmod(saniye, 3600)
     dakika, saniye = divmod(saniye, 60)
-    parcalar = [f"{gun} gün" if gun else "", f"{saat} sa" if saat else "",
-                f"{dakika} dk" if dakika else "", f"{saniye} sn"]
+    birim = tr_en((" gün", " sa", " dk", " sn"), ("d", "h", "m", "s"))
+    parcalar = [f"{gun}{birim[0]}" if gun else "", f"{saat}{birim[1]}" if saat else "",
+                f"{dakika}{birim[2]}" if dakika else "", f"{saniye}{birim[3]}"]
     return " ".join(p for p in parcalar if p)
 
 
@@ -232,9 +256,31 @@ def boyut_yaz(bayt):
     return f"{bayt:.1f} PB"
 
 
-GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
-AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
-         "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+def binlik(sayi):
+    """Binlik ayraç: 12345 → '12.345' (Türkçe) ya da '12,345' (İngilizce)"""
+    metin = f"{sayi:,.0f}"
+    return tr_en(metin.replace(",", "."), metin)
+
+
+def cogul(sayi, kelime):
+    """İngilizce çoğul eki: cogul(1, 'day') → '1 day', cogul(1500, 'day') → '1,500 days'"""
+    return f"{sayi:,} {kelime}{'' if sayi == 1 else 's'}"
+
+
+GUNLER = {"tr": ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"],
+          "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]}
+AYLAR = {"tr": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
+                "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"],
+         "en": ["January", "February", "March", "April", "May", "June", "July",
+                "August", "September", "October", "November", "December"]}
+
+
+def gun_adi(tarih):
+    return GUNLER[dil()][tarih.weekday()]
+
+
+def ay_adi(ay):
+    return AYLAR[dil()][ay - 1]
 
 
 def tarih_coz(metin):
@@ -243,7 +289,7 @@ def tarih_coz(metin):
             return datetime.datetime.strptime(metin.strip(), bicim).date()
         except ValueError:
             pass
-    raise ValueError("tarih GG.AA.YYYY şeklinde olmalı")
+    raise ValueError(tr_en("tarih GG.AA.YYYY şeklinde olmalı", "the date must look like DD.MM.YYYY"))
 
 
 # ═══════════════════════════ KLAVYE (OK TUŞLARI) ═══════════════════════════
@@ -344,7 +390,7 @@ class Sahne:
 # ═══════════════════════════ KAYITLI VERİLER ═══════════════════════════
 KLASOR = os.path.dirname(os.path.abspath(__file__))
 VERI_DOSYASI = os.path.join(KLASOR, "pandacode_veri.json")
-VERI = {"notlar": [], "tema": "yesil", "isim": "panda", "rekorlar": {}}
+VERI = {"notlar": [], "tema": "yesil", "isim": "panda", "rekorlar": {}, "dil": "en"}
 BASLANGIC = time.time()
 GECMIS = []
 
@@ -364,7 +410,7 @@ def veri_kaydet():
         with open(VERI_DOSYASI, "w", encoding="utf-8") as dosya:
             json.dump(VERI, dosya, ensure_ascii=False, indent=2)
     except OSError:
-        hata("Veriler kaydedilemedi.")
+        hata(tr_en("Veriler kaydedilemedi.", "Couldn't save your data."))
 
 
 def rekor_kontrol(oyun, puan, buyuk_iyi=True):
@@ -378,7 +424,8 @@ def rekor_kontrol(oyun, puan, buyuk_iyi=True):
 
 
 # ═══════════════════════════ KOMUT SİSTEMİ ═══════════════════════════
-KATEGORILER = ["Sistem", "Araçlar", "Şifreleme", "Eğlence", "Görsel Şov", "Oyunlar", "Öğren"]
+KATEGORILER = {"Sistem": "System", "Araçlar": "Tools", "Şifreleme": "Ciphers", "Eğlence": "Fun",
+               "Görsel Şov": "Visuals", "Oyunlar": "Games", "Öğren": "Learn"}  # Türkçe adı → İngilizce adı
 KOMUTLAR = {}
 TAKMA_ADLAR = {}
 
@@ -387,19 +434,64 @@ class Cikis(Exception):
     """'cikis' komutu bunu fırlatır, ana döngü de vedalaşıp kapanır."""
 
 
-def komut(isim, kategori, aciklama, kullanim="", takma=()):
-    """Bir fonksiyonu PandaCode komutu olarak kaydeden süsleyici (decorator)."""
+def komut(tr_adlar, en_adlar, kategori, tr_aciklama, en_aciklama, tr_kullanim="", en_kullanim=""):
+    """Bir fonksiyonu PandaCode komutu olarak kaydeden süsleyici (decorator).
+
+    Adlar boşlukla ayrılır: ilki komutun asıl adı, gerisi takma adlarıdır ("sezar", "caesar").
+    Hangi dil seçili olursa olsun Türkçe ve İngilizce adların hepsi çalışır.
+    Kullanım sadece argümanları anlatır ("<metin>"); komutun adı başına kendiliğinden eklenir.
+    """
+    tr_adlar, en_adlar = tr_adlar.split(), en_adlar.split()
+
     def kaydet(fonksiyon):
-        KOMUTLAR[isim] = {"fonksiyon": fonksiyon, "kategori": kategori, "aciklama": aciklama,
-                          "kullanim": kullanim or isim, "takma": takma}
-        for ad in takma:
+        isim = tr_adlar[0]
+        KOMUTLAR[isim] = {"fonksiyon": fonksiyon, "kategori": kategori, "ad": (isim, en_adlar[0]),
+                          "aciklama": (tr_aciklama, en_aciklama), "kullanim": (tr_kullanim, en_kullanim),
+                          "takma": (tr_adlar[1:], en_adlar[1:])}
+        for ad in tr_adlar[1:] + en_adlar:
             TAKMA_ADLAR[ad] = isim
         return fonksiyon
     return kaydet
 
 
+def komut_coz(yazilan):
+    """Yazılanı komutun asıl adına çevirir: 'help' → 'yardim', '/Yardım' → 'yardim'"""
+    ad = sadelestir(yazilan).lstrip("/")
+    return TAKMA_ADLAR.get(ad, ad)
+
+
+def komut_adi(isim):
+    """Komutun aktif dildeki adı: 'yardim' → 'help'"""
+    return tr_en(*KOMUTLAR[isim]["ad"])
+
+
+def komut_aciklamasi(isim):
+    return tr_en(*KOMUTLAR[isim]["aciklama"])
+
+
+def komut_kullanimi(isim):
+    return f"{komut_adi(isim)} {tr_en(*KOMUTLAR[isim]['kullanim'])}".strip()
+
+
+def takma_adlari(isim):
+    """Yardımda gösterilen diğer adlar: Türkçede İngilizce adlar da gösterilir, İngilizcede sadece İngilizceler."""
+    tr_takma, en_takma = KOMUTLAR[isim]["takma"]
+    if dil() == "en":
+        return en_takma
+    en_ad = KOMUTLAR[isim]["ad"][1]
+    return tr_takma + ([en_ad] if en_ad != isim else []) + en_takma
+
+
+def kategori_adi(kategori):
+    return tr_en(kategori, KATEGORILER[kategori])
+
+
 def kullanim(isim):
-    hata(f"Kullanım: {KOMUTLAR[isim]['kullanim']}")
+    hata(tr_en("Kullanım: ", "Usage: ") + komut_kullanimi(isim))
+
+
+def cikis_ipucu():
+    return tr_en("çıkmak için bir tuşa bas", "press any key to exit")
 
 
 # ═══════════════════════════ DEV YAZI TİPİ ═══════════════════════════
@@ -475,8 +567,11 @@ PANDA_KALIBI = r"""
               oooooooooooooooooooooooooooooo
                    oooooooooooooooooooo""".strip("\n").splitlines()
 
-SIYAH_KOD = "while(panda.aç){bambu.ye();}if(kod){çalış();}else{uyu(8);}"
-BEYAZ_KOD = "def pandacode():print('merhaba_dünya');return 0x1F43C;import bambu;01101011"
+# Tüylere doldurulan kodlar: (Türkçe, İngilizce)
+SIYAH_KOD = ("while(panda.aç){bambu.ye();}if(kod){çalış();}else{uyu(8);}",
+             "while(panda.hungry){bamboo.eat();}if(code){work();}else{sleep(8);}")
+BEYAZ_KOD = ("def pandacode():print('merhaba_dünya');return 0x1F43C;import bambu;01101011",
+             "def pandacode():print('hello_world');return 0x1F43C;import bamboo;01101011")
 
 
 def arkaplan(renk):
@@ -486,15 +581,16 @@ def arkaplan(renk):
 
 def panda_satirlari():
     siyah, beyaz = 0, 0
+    siyah_kod, beyaz_kod = tr_en(*SIYAH_KOD), tr_en(*BEYAZ_KOD)
     satirlar = []
     for kalip in PANDA_KALIBI:
         satir = ""
         for c in kalip:
             if c == "#":  # siyah tüy: tema renginde blok, kod içine oyulmuş gibi
-                satir += arkaplan(T.ANA) + SIYAH_YAZI + SIYAH_KOD[siyah % len(SIYAH_KOD)] + RESET
+                satir += arkaplan(T.ANA) + SIYAH_YAZI + siyah_kod[siyah % len(siyah_kod)] + RESET
                 siyah += 1
             elif c == "o":
-                satir += ACIK_GRI + BEYAZ_KOD[beyaz % len(BEYAZ_KOD)]
+                satir += ACIK_GRI + beyaz_kod[beyaz % len(beyaz_kod)]
                 beyaz += 1
             elif c == "e":
                 satir += BEYAZ + KALIN + "@" + RESET
@@ -556,10 +652,10 @@ def sayfali_goster(satirlar, baslik, bolumler=None):
                 cikti.append("\n")
             bitis = min(ust + alan, len(satirlar))
             cikti.append(f"{T.KOYU}{'─' * (en - 1)}{RESET}\033[K")
-            ipucu = "↑↓ kaydır  ←→ sayfa  Home/End  "
+            ipucu = tr_en("↑↓ kaydır  ←→ sayfa  Home/End  ", "↑↓ scroll  ←→ page  Home/End  ")
             if bolumler:
-                ipucu += f"1-{len(bolumler)} kategori  "
-            ipucu += "q çık"
+                ipucu += f"1-{len(bolumler)} " + tr_en("kategori  ", "category  ")
+            ipucu += tr_en("q çık", "q quit")
             konum = f"{ust + 1}-{bitis} / {len(satirlar)}"
             cikti.append(git(boy, 1) + kes(f" {GRI}{ipucu}{RESET}   {SARI}{konum}{RESET}", en - 1) + "\033[K")
             sys.stdout.write("".join(cikti))
@@ -592,60 +688,64 @@ def sayfali_goster(satirlar, baslik, bolumler=None):
 def yardim_satirlari():
     satirlar, bolumler = [], {}
     for sira, kategori in enumerate(KATEGORILER, 1):
-        komutlar = [(ad, k) for ad, k in KOMUTLAR.items() if k["kategori"] == kategori]
+        komutlar = [ad for ad, k in KOMUTLAR.items() if k["kategori"] == kategori]
         bolumler[kategori] = len(satirlar)
-        baslik = f"[{sira}] {tr_buyuk(kategori)} ({len(komutlar)} komut) "
+        baslik = f"[{sira}] {buyuk_harf(kategori_adi(kategori))} ({len(komutlar)} {tr_en('komut', 'commands')}) "
         satirlar.append(f"{SARI}{KALIN}━━ {baslik}{'━' * max(0, 60 - len(baslik))}{RESET}")
-        for ad, k in komutlar:
-            takma = f" {GRI}(= {', '.join(k['takma'])}){RESET}" if k["takma"] else ""
-            satirlar.append(f"   {T.ANA}{k['kullanim']:<30}{RESET} {k['aciklama']}{takma}")
+        for ad in komutlar:
+            takma = f" {GRI}(= {', '.join(takma_adlari(ad))}){RESET}" if takma_adlari(ad) else ""
+            satirlar.append(f"   {T.ANA}{komut_kullanimi(ad):<30}{RESET} {komut_aciklamasi(ad)}{takma}")
         satirlar.append("")
-    satirlar.append(f"{GRI}   İpucu: 'yardim <komut>' o komutun detayını, 'yardim <kelime>' arama sonucunu gösterir.{RESET}")
+    satirlar.append(GRI + tr_en("   İpucu: 'yardim <komut>' o komutun detayını, 'yardim <kelime>' arama sonucunu gösterir.",
+                                "   Tip: 'help <command>' shows the details of a command, 'help <word>' searches.") + RESET)
     return satirlar, bolumler
 
 
 def komut_detayi(ad):
-    k = KOMUTLAR[ad]
-    satirlar = [f"{BEYAZ}{k['aciklama']}{RESET}", "",
-                f"{GRI}Kategori :{RESET} {k['kategori']}",
-                f"{GRI}Kullanım :{RESET} {T.ANA}{k['kullanim']}{RESET}"]
-    if k["takma"]:
-        satirlar.append(f"{GRI}Diğer adı:{RESET} {', '.join(k['takma'])}")
-    kutu(satirlar, tr_buyuk(ad))
+    satirlar = [f"{BEYAZ}{komut_aciklamasi(ad)}{RESET}", "",
+                f"{GRI}{tr_en('Kategori :', 'Category :')}{RESET} {kategori_adi(KOMUTLAR[ad]['kategori'])}",
+                f"{GRI}{tr_en('Kullanım :', 'Usage    :')}{RESET} {T.ANA}{komut_kullanimi(ad)}{RESET}"]
+    if takma_adlari(ad):
+        satirlar.append(f"{GRI}{tr_en('Diğer adı:', 'Aliases  :')}{RESET} {', '.join(takma_adlari(ad))}")
+    kutu(satirlar, buyuk_harf(komut_adi(ad)))
 
 
-@komut("yardim", "Sistem", "Tüm komutları kaydırılabilir listede gösterir",
-       "yardim [komut|kelime]", ("help", "?", "komutlar"))
+@komut("yardim komutlar", "help ? commands", "Sistem",
+       "Tüm komutları kaydırılabilir listede gösterir", "Shows every command in a scrollable list",
+       "[komut|kelime]", "[command|word]")
 def k_yardim(arg):
     if not arg:
         satirlar, bolumler = yardim_satirlari()
-        sayfali_goster(satirlar, f"PANDACODE KOMUTLARI — toplam {len(KOMUTLAR)} komut", bolumler)
+        sayfali_goster(satirlar, tr_en(f"PANDACODE KOMUTLARI — toplam {len(KOMUTLAR)} komut",
+                                       f"PANDACODE COMMANDS — {len(KOMUTLAR)} in total"), bolumler)
         return
-    aranan = sadelestir(arg.split()[0])
-    if TAKMA_ADLAR.get(aranan, aranan) in KOMUTLAR:
-        komut_detayi(TAKMA_ADLAR.get(aranan, aranan))
+    ad = komut_coz(arg.split()[0])
+    if ad in KOMUTLAR:
+        komut_detayi(ad)
         return
     aranan = sadelestir(arg)
-    for kategori in KATEGORILER:
-        if sadelestir(kategori) == aranan:
+    for kategori, en_kategori in KATEGORILER.items():
+        if aranan in (sadelestir(kategori), sadelestir(en_kategori)):
             bulunan = [ad for ad, k in KOMUTLAR.items() if k["kategori"] == kategori]
             break
     else:
-        bulunan = [ad for ad, k in KOMUTLAR.items() if aranan in ad or aranan in sadelestir(k["aciklama"])]
+        bulunan = [ad for ad, k in KOMUTLAR.items()
+                   if any(aranan in sadelestir(metin) for metin in k["ad"] + k["aciklama"])]
     if not bulunan:
-        hata(f"'{arg}' ile ilgili bir komut bulamadım.")
+        hata(tr_en(f"'{arg}' ile ilgili bir komut bulamadım.", f"I couldn't find any command about '{arg}'."))
         return
-    kutu([f"{T.ANA}{KOMUTLAR[ad]['kullanim']:<26}{RESET} {KOMUTLAR[ad]['aciklama']}" for ad in bulunan],
-         f"'{arg}' için {len(bulunan)} sonuç")
+    kutu([f"{T.ANA}{komut_kullanimi(ad):<26}{RESET} {komut_aciklamasi(ad)}" for ad in bulunan],
+         tr_en(f"'{arg}' için {len(bulunan)} sonuç", f"{cogul(len(bulunan), 'result')} for '{arg}'"))
 
 
-@komut("temizle", "Sistem", "Ekranı temizler", takma=("cls", "clear"))
+@komut("temizle", "clear cls", "Sistem", "Ekranı temizler", "Clears the screen")
 def k_temizle(arg):
     ekrani_temizle()
-    print(f"  {T.ANA}{KALIN}🐼 PandaCode{RESET} {GRI}— komutlar için 'yardim' yaz{RESET}\n")
+    print(f"  {T.ANA}{KALIN}🐼 PandaCode{RESET} {GRI}— "
+          + tr_en("komutlar için 'yardim' yaz", "type 'help' for commands") + f"{RESET}\n")
 
 
-@komut("cikis", "Sistem", "PandaCode'u kapatır", takma=("exit", "quit", "q"))
+@komut("cikis", "exit quit q", "Sistem", "PandaCode'u kapatır", "Closes PandaCode")
 def k_cikis(arg):
     raise Cikis
 
@@ -720,13 +820,16 @@ def acik_kalma_suresi():
         return None
 
 
-@komut("sistem", "Sistem", "İşletim sistemi, CPU, RAM, disk ve saati CANLI gösterir", takma=("sys", "neofetch"))
+@komut("sistem", "system sys neofetch", "Sistem",
+       "İşletim sistemi, CPU, RAM, disk ve saati CANLI gösterir", "Shows the OS, CPU, RAM, disk and time LIVE")
 def k_sistem(arg):
+    etiket = lambda tr, en: f"{GRI}{tr_en(tr, en):<11}:{RESET}"
+    cekirdek = tr_en(f"{os.cpu_count()} çekirdek", cogul(os.cpu_count() or 0, "core"))
     sabit = [
-        f"{GRI}Sistem     :{RESET} {platform.system()} {platform.release()} ({platform.machine()})",
-        f"{GRI}Bilgisayar :{RESET} {socket.gethostname()}",
-        f"{GRI}İşlemci    :{RESET} {islemci_adi()[:48]} — {os.cpu_count()} çekirdek",
-        f"{GRI}Python     :{RESET} {platform.python_version()}",
+        f"{etiket('Sistem', 'System')} {platform.system()} {platform.release()} ({platform.machine()})",
+        f"{etiket('Bilgisayar', 'Computer')} {socket.gethostname()}",
+        f"{etiket('İşlemci', 'Processor')} {islemci_adi()[:48]} — {cekirdek}",
+        f"{etiket('Python', 'Python')} {platform.python_version()}",
     ]
     onceki = cpu_zamanlari()
     ilk = True
@@ -736,24 +839,25 @@ def k_sistem(arg):
             if onceki and simdi and simdi[1] != onceki[1]:
                 cpu = f"{cubuk(1 - (simdi[0] - onceki[0]) / (simdi[1] - onceki[1]))}"
             else:
-                cpu = f"{GRI}ölçülüyor...{RESET}"
+                cpu = f"{GRI}{tr_en('ölçülüyor...', 'measuring...')}{RESET}"
             onceki = simdi
             ram = ram_bilgisi()
             ram_satiri = (f"{cubuk(ram[1] / ram[0])} {GRI}{boyut_yaz(ram[1])} / {boyut_yaz(ram[0])}{RESET}"
-                          if ram else f"{GRI}bilinmiyor{RESET}")
+                          if ram else f"{GRI}{tr_en('bilinmiyor', 'unknown')}{RESET}")
             disk = shutil.disk_usage(os.path.abspath(os.sep))
             acik = acik_kalma_suresi()
-            satirlar = [f"  {T.ANA}{KALIN}╔═ 🐼 SİSTEM PANELİ ═════════════════════════{RESET}"]
+            baslik = tr_en("SİSTEM PANELİ", "SYSTEM PANEL")
+            satirlar = [f"  {T.ANA}{KALIN}╔═ 🐼 {baslik} {'═' * (38 - len(baslik))}{RESET}"]
             satirlar += [f"  {T.ANA}║{RESET} {s}" for s in sabit]
             satirlar += [
-                f"  {T.ANA}║{RESET} {GRI}CPU        :{RESET} {cpu}",
-                f"  {T.ANA}║{RESET} {GRI}RAM        :{RESET} {ram_satiri}",
-                f"  {T.ANA}║{RESET} {GRI}Disk       :{RESET} {cubuk(disk.used / disk.total)} "
-                f"{GRI}{boyut_yaz(disk.free)} boş{RESET}",
-                f"  {T.ANA}║{RESET} {GRI}Açık kalma :{RESET} {sure_yaz(acik) if acik else '?'}",
-                f"  {T.ANA}║{RESET} {GRI}Saat       :{RESET} {BEYAZ}{KALIN}{time.strftime('%H:%M:%S')}{RESET}  "
-                f"{time.strftime('%d.%m.%Y')} {GUNLER[datetime.date.today().weekday()]}",
-                f"  {T.ANA}{KALIN}╚═ çıkmak için bir tuşa bas ═══════════════════{RESET}",
+                f"  {T.ANA}║{RESET} {etiket('CPU', 'CPU')} {cpu}",
+                f"  {T.ANA}║{RESET} {etiket('RAM', 'RAM')} {ram_satiri}",
+                f"  {T.ANA}║{RESET} {etiket('Disk', 'Disk')} {cubuk(disk.used / disk.total)} "
+                f"{GRI}{boyut_yaz(disk.free)} {tr_en('boş', 'free')}{RESET}",
+                f"  {T.ANA}║{RESET} {etiket('Açık kalma', 'Uptime')} {sure_yaz(acik) if acik else '?'}",
+                f"  {T.ANA}║{RESET} {etiket('Saat', 'Time')} {BEYAZ}{KALIN}{time.strftime('%H:%M:%S')}{RESET}  "
+                f"{time.strftime('%d.%m.%Y')} {gun_adi(datetime.date.today())}",
+                f"  {T.ANA}{KALIN}╚═ {cikis_ipucu()} {'═' * (43 - len(cikis_ipucu()))}{RESET}",
             ]
             yerinde_yaz(satirlar, ilk)
             ilk = False
@@ -761,21 +865,26 @@ def k_sistem(arg):
                 break
 
 
-@komut("saat", "Sistem", "Şu anki saati gösterir")
+@komut("saat", "time", "Sistem", "Şu anki saati gösterir", "Shows the current time")
 def k_saat(arg):
     soyle(f"🕒 {BEYAZ}{KALIN}{time.strftime('%H:%M:%S')}")
 
 
-@komut("tarih", "Sistem", "Bugünün tarihini ve yılın kaçıncı günü olduğunu gösterir")
+@komut("tarih", "date", "Sistem", "Bugünün tarihini ve yılın kaçıncı günü olduğunu gösterir",
+       "Shows today's date and which day of the year it is")
 def k_tarih(arg):
     bugun = datetime.date.today()
     yil_gunu = bugun.timetuple().tm_yday
     yil_uzunlugu = 366 if calendar.isleap(bugun.year) else 365
-    soyle(f"📅 {BEYAZ}{KALIN}{bugun.day} {AYLAR[bugun.month - 1]} {bugun.year}, {GUNLER[bugun.weekday()]}")
-    soyle(f"Yılın {yil_gunu}. günü, {bugun.isocalendar()[1]}. haftası. Yılın %{yil_gunu / yil_uzunlugu * 100:.1f}'i bitti.", GRI)
+    hafta, biten = bugun.isocalendar()[1], yil_gunu / yil_uzunlugu * 100
+    soyle(f"📅 {BEYAZ}{KALIN}" + tr_en(f"{bugun.day} {ay_adi(bugun.month)} {bugun.year}, {gun_adi(bugun)}",
+                                      f"{gun_adi(bugun)}, {bugun.day} {ay_adi(bugun.month)} {bugun.year}"))
+    soyle(tr_en(f"Yılın {yil_gunu}. günü, {hafta}. haftası. Yılın %{biten:.1f}'i bitti.",
+                f"Day {yil_gunu} of the year, week {hafta}. {biten:.1f}% of the year is done."), GRI)
 
 
-@komut("takvim", "Sistem", "Aylık takvim gösterir (bugün işaretli)", "takvim [ay] [yıl]", ("cal",))
+@komut("takvim", "calendar cal", "Sistem", "Aylık takvim gösterir (bugün işaretli)",
+       "Shows a monthly calendar (today is highlighted)", "[ay] [yıl]", "[month] [year]")
 def k_takvim(arg):
     bugun = datetime.date.today()
     ay, yil = bugun.month, bugun.year
@@ -790,8 +899,8 @@ def k_takvim(arg):
     except ValueError:
         kullanim("takvim")
         return
-    print(f"\n  {T.ANA}{KALIN}{(AYLAR[ay - 1] + ' ' + str(yil)).center(20)}{RESET}")
-    print(f"  {SARI}Pt Sa Ça Pe Cu {KIRMIZI}Ct Pz{RESET}")
+    print(f"\n  {T.ANA}{KALIN}{(ay_adi(ay) + ' ' + str(yil)).center(20)}{RESET}")
+    print(f"  {SARI}{tr_en('Pt Sa Ça Pe Cu', 'Mo Tu We Th Fr')} {KIRMIZI}{tr_en('Ct Pz', 'Sa Su')}{RESET}")
     for hafta in calendar.monthcalendar(yil, ay):
         satir = ""
         for i, gun in enumerate(hafta):
@@ -805,41 +914,46 @@ def k_takvim(arg):
     print()
 
 
-@komut("oturum", "Sistem", "PandaCode ne zamandır açık, kaç komut yazdın", takma=("uptime",))
+@komut("oturum", "session uptime", "Sistem", "PandaCode ne zamandır açık, kaç komut yazdın",
+       "How long PandaCode has been open and how many commands you typed")
 def k_oturum(arg):
-    soyle(f"⏱  Oturum süresi: {BEYAZ}{sure_yaz(time.time() - BASLANGIC)}{T.ANA}, yazılan komut: {BEYAZ}{len(GECMIS)}")
+    sure = sure_yaz(time.time() - BASLANGIC)
+    soyle(tr_en(f"⏱  Oturum süresi: {BEYAZ}{sure}{T.ANA}, yazılan komut: {BEYAZ}{len(GECMIS)}",
+                f"⏱  Session time: {BEYAZ}{sure}{T.ANA}, commands typed: {BEYAZ}{len(GECMIS)}"))
 
 
-@komut("gecmis", "Sistem", "Bu oturumda yazdığın komutları listeler", takma=("history",))
+@komut("gecmis", "history", "Sistem", "Bu oturumda yazdığın komutları listeler",
+       "Lists the commands you typed this session")
 def k_gecmis(arg):
     if not GECMIS:
-        soyle("Henüz komut yazmadın.", GRI)
+        soyle(tr_en("Henüz komut yazmadın.", "You haven't typed any commands yet."), GRI)
         return
     for i, satir in enumerate(GECMIS[-30:], max(1, len(GECMIS) - 29)):
         print(f"  {GRI}{i:>3}{RESET}  {satir}")
 
 
-@komut("tekrar", "Sistem", "Son komutu tekrar çalıştırır", takma=("!!",))
+@komut("tekrar", "repeat !!", "Sistem", "Son komutu tekrar çalıştırır", "Runs the last command again")
 def k_tekrar(arg):
     if not GECMIS:
-        hata("Tekrarlanacak komut yok.")
+        hata(tr_en("Tekrarlanacak komut yok.", "There's no command to repeat."))
         return
     soyle(f"↻ {GECMIS[-1]}", GRI)
     calistir(GECMIS[-1])
 
 
-@komut("dizin", "Sistem", "Şu an hangi klasörde olduğunu gösterir", takma=("pwd",))
+@komut("dizin", "pwd", "Sistem", "Şu an hangi klasörde olduğunu gösterir", "Shows which folder you're in")
 def k_dizin(arg):
     soyle(f"📁 {os.getcwd()}", BEYAZ)
 
 
-@komut("listele", "Sistem", "Klasördeki dosyaları boyutlarıyla listeler", "listele [klasör]", ("ls", "dir"))
+@komut("listele", "ls dir", "Sistem", "Klasördeki dosyaları boyutlarıyla listeler",
+       "Lists the files in a folder with their sizes", "[klasör]", "[folder]")
 def k_listele(arg):
     yol = arg or "."
     try:
         ogeler = sorted(os.scandir(yol), key=lambda o: (not o.is_dir(), o.name.lower()))
     except OSError as e:
-        hata(f"Açılamadı: {e.strerror}")
+        hata(tr_en(f"Açılamadı: {e.strerror}", f"Couldn't open it: {e.strerror}"))
         return
     for oge in ogeler[:60]:
         if oge.is_dir():
@@ -851,18 +965,19 @@ def k_listele(arg):
                 boyut = "?"
             print(f"  📄 {oge.name:<40} {GRI}{boyut:>10}{RESET}")
     if len(ogeler) > 60:
-        soyle(f"... ve {len(ogeler) - 60} öğe daha", GRI)
-    soyle(f"Toplam {len(ogeler)} öğe.", GRI)
+        soyle(tr_en(f"... ve {len(ogeler) - 60} öğe daha", f"... and {len(ogeler) - 60} more"), GRI)
+    soyle(tr_en(f"Toplam {len(ogeler)} öğe.", f"{cogul(len(ogeler), 'item')} in total."), GRI)
 
 
-@komut("disk", "Sistem", "Disk doluluğunu gösterir")
+@komut("disk", "disk", "Sistem", "Disk doluluğunu gösterir", "Shows how full the disk is")
 def k_disk(arg):
     disk = shutil.disk_usage(os.path.abspath(os.sep))
     soyle(f"💾 {cubuk(disk.used / disk.total, 30)}")
-    soyle(f"Toplam {boyut_yaz(disk.total)}  •  Dolu {boyut_yaz(disk.used)}  •  Boş {boyut_yaz(disk.free)}", GRI)
+    toplam, dolu, bos = boyut_yaz(disk.total), boyut_yaz(disk.used), boyut_yaz(disk.free)
+    soyle(tr_en(f"Toplam {toplam}  •  Dolu {dolu}  •  Boş {bos}", f"Total {toplam}  •  Used {dolu}  •  Free {bos}"), GRI)
 
 
-@komut("ip", "Sistem", "Bilgisayarın yerel ağ (IP) adresini gösterir")
+@komut("ip", "ip", "Sistem", "Bilgisayarın yerel ağ (IP) adresini gösterir", "Shows the computer's local network (IP) address")
 def k_ip(arg):
     soket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -872,75 +987,94 @@ def k_ip(arg):
         ip = "127.0.0.1"
     finally:
         soket.close()
-    soyle(f"🌐 Yerel IP: {BEYAZ}{KALIN}{ip}{RESET}   {GRI}Bilgisayar adı: {socket.gethostname()}")
+    soyle(tr_en(f"🌐 Yerel IP: {BEYAZ}{KALIN}{ip}{RESET}   {GRI}Bilgisayar adı: {socket.gethostname()}",
+                f"🌐 Local IP: {BEYAZ}{KALIN}{ip}{RESET}   {GRI}Computer name: {socket.gethostname()}"))
 
 
-@komut("kullanici", "Sistem", "Oturum açmış kullanıcıyı gösterir", takma=("whoami",))
+@komut("kullanici", "whoami", "Sistem", "Oturum açmış kullanıcıyı gösterir", "Shows the logged-in user")
 def k_kullanici(arg):
-    soyle(f"👤 {BEYAZ}{getpass.getuser()}{T.ANA} @ {socket.gethostname()}  {GRI}(PandaCode'daki adın: {VERI['isim']})")
+    soyle(f"👤 {BEYAZ}{getpass.getuser()}{T.ANA} @ {socket.gethostname()}  {GRI}"
+          + tr_en(f"(PandaCode'daki adın: {VERI['isim']})", f"(your PandaCode name: {VERI['isim']})"))
 
 
-@komut("tema", "Sistem", "Terminalin rengini değiştirir (kalıcı)", "tema [renk adı]",
-       ("renk",))
+@komut("tema renk", "theme", "Sistem", "Terminalin rengini değiştirir (kalıcı)", "Changes the terminal's color (saved)",
+       "[renk adı]", "[color name]")
 def k_tema(arg):
     secim = sadelestir(arg)
+    secim = next((ad for ad, en_ad in TEMA_ADLARI.items() if en_ad == secim), secim)  # 'purple' → 'mor'
     if secim not in TEMALAR:
         if arg:
-            hata(f"'{arg}' diye bir tema yok.")
+            hata(tr_en(f"'{arg}' diye bir tema yok.", f"There's no theme called '{arg}'."))
         for ad, (ana, koyu) in TEMALAR.items():
-            isaret = " ◀ şu an" if ad == VERI["tema"] else ""
-            print(f"  {ana}{KALIN}██{RESET}{koyu}██{RESET}  {ana}{ad}{RESET}{GRI}{isaret}{RESET}")
-        soyle("Örnek: tema mor", GRI)
+            isaret = tr_en(" ◀ şu an", " ◀ current") if ad == VERI["tema"] else ""
+            print(f"  {ana}{KALIN}██{RESET}{koyu}██{RESET}  {ana}{tr_en(ad, TEMA_ADLARI[ad])}{RESET}{GRI}{isaret}{RESET}")
+        soyle(tr_en("Örnek: tema mor", "Example: theme purple"), GRI)
         return
     T.ANA, T.KOYU = TEMALAR[secim]
     VERI["tema"] = secim
     veri_kaydet()
-    soyle(f"🎨 Tema '{secim}' oldu! Panda yeni rengini beğendi.")
+    ad = tr_en(secim, TEMA_ADLARI[secim])
+    soyle(tr_en(f"🎨 Tema '{ad}' oldu! Panda yeni rengini beğendi.", f"🎨 The theme is now '{ad}'! The panda loves its new color."))
 
 
-@komut("isim", "Sistem", "Komut satırındaki adını değiştirir (kalıcı)", "isim <yeni ad>", ("nick",))
+@komut("isim", "name nick", "Sistem", "Komut satırındaki adını değiştirir (kalıcı)",
+       "Changes your name in the prompt (saved)", "<yeni ad>", "<new name>")
 def k_isim(arg):
     if not arg:
         kullanim("isim")
         return
     VERI["isim"] = re.sub(r"\s+", "_", arg)[:16]
     veri_kaydet()
-    soyle(f"Tamamdır, artık sen {BEYAZ}{KALIN}{VERI['isim']}{RESET}{T.ANA}'sın! 🐼")
+    soyle(tr_en(f"Tamamdır, artık sen {BEYAZ}{KALIN}{VERI['isim']}{RESET}{T.ANA}'sın! 🐼",
+                f"Done, from now on you're {BEYAZ}{KALIN}{VERI['isim']}{RESET}{T.ANA}! 🐼"))
 
 
-@komut("hakkinda", "Sistem", "PandaCode hakkında bilgi", takma=("about", "surum", "version"))
+@komut("dil", "lang language", "Sistem", "Dili değiştirir: Türkçe ↔ İngilizce (kalıcı)",
+       "Switches the language: English ↔ Turkish (saved)", "[tr|en]", "[en|tr]")
+def k_dil(arg):
+    diller = {"tr": "tr", "turkce": "tr", "turkish": "tr", "en": "en", "ingilizce": "en", "english": "en"}
+    secim = sadelestir(arg)
+    if secim and secim not in diller:
+        kullanim("dil")
+        return
+    VERI["dil"] = diller.get(secim, "en" if dil() == "tr" else "tr")  # boş yazılırsa öbür dile geçer
+    veri_kaydet()
+    soyle(tr_en("🌐 Dil: Türkçe. İngilizce için tekrar 'dil' yaz.", "🌐 Language: English. Type 'lang' again for Turkish."))
+
+
+@komut("hakkinda surum", "about version", "Sistem", "PandaCode hakkında bilgi", "About PandaCode")
 def k_hakkinda(arg):
+    bilgiler = [(tr_en("Komut sayısı", "Commands"), len(KOMUTLAR)),
+                (tr_en("Kategoriler", "Categories"), ", ".join(kategori_adi(k) for k in KATEGORILER)),
+                (tr_en("Dil", "Language"), tr_en("Türkçe", "English")),
+                (tr_en("Veri dosyası", "Data file"), "pandacode_veri.json"),
+                (tr_en("Geçmişi", "History"), tr_en("PandaHack v1.0'dan evrildi", "Evolved from PandaHack v1.0"))]
     kutu([f"{T.ANA}{KALIN}PandaCode v{SURUM}{RESET}",
-          "Kodlardan yapılmış bir pandanın terminali.",
-          "",
-          f"{GRI}Komut sayısı :{RESET} {len(KOMUTLAR)}",
-          f"{GRI}Kategoriler  :{RESET} {', '.join(KATEGORILER)}",
-          f"{GRI}Veri dosyası :{RESET} pandacode_veri.json",
-          f"{GRI}Geçmişi      :{RESET} PandaHack v1.0'dan evrildi",
-          "",
-          f"{SARI}Kodla, öğren, bambu ye. 🎋{RESET}"], "HAKKINDA")
+          tr_en("Kodlardan yapılmış bir pandanın terminali.", "The terminal of a panda made of code."),
+          ""] + [f"{GRI}{ad:<13}:{RESET} {deger}" for ad, deger in bilgiler] +
+         ["", SARI + tr_en("Kodla, öğren, bambu ye. 🎋", "Code, learn, eat bamboo. 🎋") + RESET], tr_en("HAKKINDA", "ABOUT"))
 
 
-@komut("istatistik", "Sistem", "En çok kullandığın komutları gösterir", takma=("stats",))
+@komut("istatistik", "stats", "Sistem", "En çok kullandığın komutları gösterir", "Shows the commands you use the most")
 def k_istatistik(arg):
     if not GECMIS:
-        soyle("Henüz istatistik yok, biraz komut yaz!", GRI)
+        soyle(tr_en("Henüz istatistik yok, biraz komut yaz!", "No stats yet, type some commands!"), GRI)
         return
-    sayac = Counter(TAKMA_ADLAR.get(sadelestir(s.split()[0]), sadelestir(s.split()[0])) for s in GECMIS)
+    sayac = Counter(komut_coz(s.split()[0]) for s in GECMIS)
     en_cok = sayac.most_common(1)[0][1]
     for ad, adet in sayac.most_common(8):
-        print(f"  {T.ANA}{ad:<12}{RESET} {'█' * max(1, adet * 25 // en_cok)} {GRI}{adet}{RESET}")
+        print(f"  {T.ANA}{komut_adi(ad):<12}{RESET} {'█' * max(1, adet * 25 // en_cok)} {GRI}{adet}{RESET}")
 
 
-@komut("python", "Sistem", "Python sürümünü ve yerini gösterir", takma=("py",))
+@komut("python", "python py", "Sistem", "Python sürümünü ve yerini gösterir", "Shows the Python version and where it lives")
 def k_python(arg):
     soyle(f"🐍 Python {BEYAZ}{platform.python_version()}{T.ANA} ({platform.python_implementation()})")
     soyle(sys.executable, GRI)
 
 
-@komut("ekran", "Sistem", "Terminal penceresinin boyutunu gösterir")
+@komut("ekran", "screen", "Sistem", "Terminal penceresinin boyutunu gösterir", "Shows the size of the terminal window")
 def k_ekran(arg):
-    soyle(f"🖥  {genislik()} sütun × {yukseklik()} satır")
+    soyle(tr_en(f"🖥  {genislik()} sütun × {yukseklik()} satır", f"🖥  {genislik()} columns × {yukseklik()} rows"))
 
 
 # ═══════════════════════════ KOMUTLAR: ARAÇLAR ═══════════════════════════
@@ -963,7 +1097,7 @@ def hesap_coz(dugum):
     if isinstance(dugum, ast.BinOp) and type(dugum.op) in HESAP_ISLEMLERI:
         sol, sag = hesap_coz(dugum.left), hesap_coz(dugum.right)
         if isinstance(dugum.op, ast.Pow) and abs(sag) > 1000:
-            raise ValueError("üs çok büyük, bilgisayarı yakmayalım")
+            raise ValueError(tr_en("üs çok büyük, bilgisayarı yakmayalım", "the exponent is too big, let's not fry the computer"))
         return HESAP_ISLEMLERI[type(dugum.op)](sol, sag)
     if isinstance(dugum, ast.UnaryOp) and isinstance(dugum.op, (ast.USub, ast.UAdd)):
         deger = hesap_coz(dugum.operand)
@@ -973,7 +1107,7 @@ def hesap_coz(dugum):
     if (isinstance(dugum, ast.Call) and isinstance(dugum.func, ast.Name)
             and dugum.func.id in HESAP_FONKSIYONLARI and not dugum.keywords):
         return HESAP_FONKSIYONLARI[dugum.func.id](*[hesap_coz(a) for a in dugum.args])
-    raise ValueError("bunu anlayamadım")
+    raise ValueError(tr_en("bunu anlayamadım", "I couldn't understand that"))
 
 
 def sayi_bicimle(deger):
@@ -982,27 +1116,29 @@ def sayi_bicimle(deger):
             return str(int(deger))
         return f"{deger:.10g}"
     metin = str(deger)
-    return metin if len(metin) <= 60 else f"{metin[:25]}... ({len(metin.lstrip('-'))} basamak)"
+    return metin if len(metin) <= 60 else f"{metin[:25]}... ({len(metin.lstrip('-'))} {tr_en('basamak', 'digits')})"
 
 
-@komut("hesapla", "Araçlar", "Matematik işlemi çözer: + - * / ^ % kok() sin() log() pi",
-       "hesapla <işlem>", ("calc", "="))
+@komut("hesapla", "calc calculate =", "Araçlar", "Matematik işlemi çözer: + - * / ^ % kok() sin() log() pi",
+       "Solves math: + - * / ^ % sqrt() sin() log() pi", "<işlem>", "<expression>")
 def k_hesapla(arg):
     if not arg:
         kullanim("hesapla")
-        soyle("Örnek: hesapla (3+4)*2^3   •   hesapla kok(144)   •   hesapla sin(30)", GRI)
+        soyle(tr_en("Örnek: hesapla (3+4)*2^3   •   hesapla kok(144)   •   hesapla sin(30)",
+                    "Example: calc (3+4)*2^3   •   calc sqrt(144)   •   calc sin(30)"), GRI)
         return
     ifade = arg.replace("^", "**").replace("×", "*").replace("÷", "/")
     try:
         sonuc = hesap_coz(ast.parse(ifade, mode="eval").body)
     except ZeroDivisionError:
-        hata("Sıfıra bölme! Evren az kalsın çöküyordu. 🌌")
+        hata(tr_en("Sıfıra bölme! Evren az kalsın çöküyordu. 🌌", "Division by zero! The universe almost collapsed. 🌌"))
         return
     except (SyntaxError, ValueError, TypeError, OverflowError) as e:
-        hata(f"Hesaplayamadım: {e}")
+        hata(tr_en(f"Hesaplayamadım: {e}", f"Couldn't calculate that: {e}"))
         return
     if isinstance(sonuc, complex):
-        hata("Sonuç karmaşık sayı çıktı, o işler biraz ileri seviye. 😅")
+        hata(tr_en("Sonuç karmaşık sayı çıktı, o işler biraz ileri seviye. 😅",
+                   "The result is a complex number, that's a bit too advanced for me. 😅"))
         return
     soyle(f"{GRI}{arg} ={RESET} {BEYAZ}{KALIN}{sayi_bicimle(sonuc)}")
 
@@ -1030,16 +1166,19 @@ def sifre_puanla(sifre):
 
 def kirilma_suresi(entropi):
     saniye = 2 ** entropi / 1e10  # saniyede 10 milyar deneme yapan güçlü bir bilgisayar
-    for sinir, bolen, birim in ((1, 1, "anında"), (60, 1, "saniye"), (3600, 60, "dakika"),
-                                (86400, 3600, "saat"), (31536000, 86400, "gün"),
-                                (31536000 * 1.4e10, 31536000, "yıl")):
+    for sinir, bolen, birim, en_birim in ((1, 1, "anında", ""), (60, 1, "saniye", "second"),
+                                          (3600, 60, "dakika", "minute"), (86400, 3600, "saat", "hour"),
+                                          (31536000, 86400, "gün", "day"), (31536000 * 1.4e10, 31536000, "yıl", "year")):
         if saniye < sinir:
-            return "anında 💥" if birim == "anında" else f"{saniye / bolen:,.0f} {birim}".replace(",", ".")
-    return "evrenin yaşından uzun 🌌"
+            if not en_birim:
+                return tr_en("anında 💥", "instantly 💥")
+            deger = round(saniye / bolen)
+            return tr_en(f"{binlik(deger)} {birim}", cogul(deger, en_birim))
+    return tr_en("evrenin yaşından uzun 🌌", "longer than the age of the universe 🌌")
 
 
-@komut("sifre", "Araçlar", "Gerçekten güçlü, rastgele bir şifre üretir", "sifre [uzunluk]",
-       ("sifreuret", "password"))
+@komut("sifre sifreuret", "password", "Araçlar", "Gerçekten güçlü, rastgele bir şifre üretir",
+       "Generates a truly strong random password", "[uzunluk]", "[length]")
 def k_sifre(arg):
     try:
         uzunluk = int(arg) if arg else 16
@@ -1049,61 +1188,66 @@ def k_sifre(arg):
     uzunluk = min(max(uzunluk, 6), 128)
     sifre = sifre_olustur(uzunluk)
     soyle(f"🔑 {BEYAZ}{KALIN}{sifre}")
-    soyle(f"{uzunluk} karakter • kırılma süresi: {kirilma_suresi(sifre_puanla(sifre))}", GRI)
+    sure = kirilma_suresi(sifre_puanla(sifre))
+    soyle(tr_en(f"{uzunluk} karakter • kırılma süresi: {sure}", f"{uzunluk} characters • time to crack: {sure}"), GRI)
 
 
-@komut("sifreguc", "Araçlar", "Bir şifrenin ne kadar sağlam olduğunu ölçer (boş bırakırsan gizli yazarsın)",
-       "sifreguc [şifre]", ("sifrekontrol",))
+@komut("sifreguc sifrekontrol", "pwcheck", "Araçlar",
+       "Bir şifrenin ne kadar sağlam olduğunu ölçer (boş bırakırsan gizli yazarsın)",
+       "Measures how strong a password is (leave it empty to type it hidden)", "[şifre]", "[password]")
 def k_sifreguc(arg):
-    sifre = arg or getpass.getpass(f"  {SARI}Şifre (ekranda görünmez): {RESET}")
+    sifre = arg or getpass.getpass(f"  {SARI}{tr_en('Şifre (ekranda görünmez): ', 'Password (hidden): ')}{RESET}")
     if not sifre:
         return
     entropi = sifre_puanla(sifre)
-    seviyeler = [(28, "ÇOK ZAYIF", KIRMIZI), (36, "ZAYIF", KIRMIZI), (60, "ORTA", SARI),
-                 (80, "GÜÇLÜ", YESIL), (float("inf"), "ÇOK GÜÇLÜ", CAMGOBEGI)]
+    seviyeler = [(28, tr_en("ÇOK ZAYIF", "VERY WEAK"), KIRMIZI), (36, tr_en("ZAYIF", "WEAK"), KIRMIZI),
+                 (60, tr_en("ORTA", "MEDIUM"), SARI), (80, tr_en("GÜÇLÜ", "STRONG"), YESIL),
+                 (float("inf"), tr_en("ÇOK GÜÇLÜ", "VERY STRONG"), CAMGOBEGI)]
     ad, renk = next((a, r) for s, a, r in seviyeler if entropi < s)
     dolu = min(20, int(entropi / 5))
     soyle(f"{renk}{'█' * dolu}{GRI}{'░' * (20 - dolu)}{RESET}  {renk}{KALIN}{ad}{RESET}")
-    soyle(f"Tahmini kırılma süresi: {kirilma_suresi(entropi)}", BEYAZ)
+    soyle(tr_en(f"Tahmini kırılma süresi: {kirilma_suresi(entropi)}", f"Estimated time to crack: {kirilma_suresi(entropi)}"), BEYAZ)
     tavsiyeler = []
     if len(sifre) < 12:
-        tavsiyeler.append("En az 12 karakter kullan")
+        tavsiyeler.append(tr_en("En az 12 karakter kullan", "Use at least 12 characters"))
     if not re.search(r"[A-Z]", sifre):
-        tavsiyeler.append("Büyük harf ekle")
+        tavsiyeler.append(tr_en("Büyük harf ekle", "Add uppercase letters"))
     if not re.search(r"\d", sifre):
-        tavsiyeler.append("Rakam ekle")
+        tavsiyeler.append(tr_en("Rakam ekle", "Add numbers"))
     if not re.search(r"[^\w]", sifre):
-        tavsiyeler.append("!@#$ gibi sembol ekle")
+        tavsiyeler.append(tr_en("!@#$ gibi sembol ekle", "Add symbols like !@#$"))
     for tavsiye in tavsiyeler:
         soyle(f"💡 {tavsiye}", GRI)
 
 
-@komut("not", "Araçlar", "Hızlı not alır (kapatsan da kaybolmaz)", "not <metin>", ("note",))
+@komut("not", "note", "Araçlar", "Hızlı not alır (kapatsan da kaybolmaz)", "Takes a quick note (it stays even after you quit)",
+       "<metin>", "<text>")
 def k_not(arg):
     if not arg:
         kullanim("not")
         return
     VERI["notlar"].append({"metin": arg, "tarih": time.strftime("%d.%m.%Y %H:%M")})
     veri_kaydet()
-    soyle(f"📝 Not #{len(VERI['notlar'])} kaydedildi.")
+    soyle(tr_en(f"📝 Not #{len(VERI['notlar'])} kaydedildi.", f"📝 Note #{len(VERI['notlar'])} saved."))
 
 
-@komut("notlar", "Araçlar", "Aldığın notları listeler", takma=("notes",))
+@komut("notlar", "notes", "Araçlar", "Aldığın notları listeler", "Lists your notes")
 def k_notlar(arg):
     if not VERI["notlar"]:
-        soyle("Hiç notun yok. 'not <metin>' ile ekleyebilirsin.", GRI)
+        soyle(tr_en("Hiç notun yok. 'not <metin>' ile ekleyebilirsin.", "You have no notes yet. Add one with 'note <text>'."), GRI)
         return
     kutu([f"{T.ANA}{i:>2}.{RESET} {n['metin']}  {GRI}({n['tarih']}){RESET}"
-          for i, n in enumerate(VERI["notlar"], 1)], f"NOTLAR ({len(VERI['notlar'])})")
+          for i, n in enumerate(VERI["notlar"], 1)], tr_en("NOTLAR", "NOTES") + f" ({len(VERI['notlar'])})")
 
 
-@komut("notsil", "Araçlar", "Bir notu ya da tüm notları siler", "notsil <no|hepsi>")
+@komut("notsil", "delnote", "Araçlar", "Bir notu ya da tüm notları siler", "Deletes one note or all of them",
+       "<no|hepsi>", "<number|all>")
 def k_notsil(arg):
-    if sadelestir(arg) == "hepsi":
-        if sadelestir(sor("Tüm notlar silinsin mi? (e/h): ")) == "e":
+    if sadelestir(arg) in ("hepsi", "all"):
+        if sadelestir(sor(tr_en("Tüm notlar silinsin mi? (e/h): ", "Delete all notes? (y/n): "))) in ("e", "evet", "y", "yes"):
             VERI["notlar"].clear()
             veri_kaydet()
-            soyle("🗑  Tüm notlar silindi.")
+            soyle(tr_en("🗑  Tüm notlar silindi.", "🗑  All notes deleted."))
         return
     try:
         silinen = VERI["notlar"].pop(int(arg) - 1)
@@ -1111,15 +1255,16 @@ def k_notsil(arg):
         kullanim("notsil")
         return
     veri_kaydet()
-    soyle(f"🗑  Silindi: {silinen['metin']}")
+    soyle(tr_en(f"🗑  Silindi: {silinen['metin']}", f"🗑  Deleted: {silinen['metin']}"))
 
 
-@komut("uuid", "Araçlar", "Benzersiz bir kimlik (UUID) üretir")
+@komut("uuid", "uuid", "Araçlar", "Benzersiz bir kimlik (UUID) üretir", "Generates a unique ID (UUID)")
 def k_uuid(arg):
     soyle(f"🆔 {BEYAZ}{uuid.uuid4()}")
 
 
-@komut("rastgele", "Araçlar", "İki sayı arasında rastgele sayı seçer", "rastgele [en_az] [en_çok]", ("random",))
+@komut("rastgele", "random", "Araçlar", "İki sayı arasında rastgele sayı seçer", "Picks a random number between two numbers",
+       "[en_az] [en_çok]", "[min] [max]")
 def k_rastgele(arg):
     try:
         sinirlar = [int(p) for p in arg.split()] or [1, 100]
@@ -1127,24 +1272,27 @@ def k_rastgele(arg):
     except ValueError:
         kullanim("rastgele")
         return
-    soyle(f"🎰 {alt}-{ust} arası: {BEYAZ}{KALIN}{random.randint(alt, ust)}")
+    soyle(tr_en(f"🎰 {alt}-{ust} arası: ", f"🎰 Between {alt} and {ust}: ") + f"{BEYAZ}{KALIN}{random.randint(alt, ust)}")
 
 
-@komut("sec", "Araçlar", "Kararsız kaldığında senin yerine seçer", "sec <a, b, c>", ("karar",))
+@komut("sec karar", "pick", "Araçlar", "Kararsız kaldığında senin yerine seçer", "Chooses for you when you can't decide",
+       "<a, b, c>", "<a, b, c>")
 def k_sec(arg):
     secenekler = [s.strip() for s in (arg.split(",") if "," in arg else arg.split()) if s.strip()]
     if len(secenekler) < 2:
         kullanim("sec")
-        soyle("Örnek: sec pizza, lahmacun, dürüm", GRI)
+        soyle(tr_en("Örnek: sec pizza, lahmacun, dürüm", "Example: pick pizza, burger, tacos"), GRI)
         return
     for i in range(18):
         sys.stdout.write(f"\r  {GRI}🤔 {random.choice(secenekler):<30}{RESET}")
         sys.stdout.flush()
         time.sleep(0.03 + i * 0.012)
-    sys.stdout.write(f"\r  {T.ANA}🐼 Panda diyor ki: {BEYAZ}{KALIN}{random.choice(secenekler)}{RESET}\033[K\n")
+    sys.stdout.write(f"\r  {T.ANA}{tr_en('🐼 Panda diyor ki:', '🐼 The panda says:')} "
+                     f"{BEYAZ}{KALIN}{random.choice(secenekler)}{RESET}\033[K\n")
 
 
-@komut("hash", "Araçlar", "Metnin MD5 / SHA1 / SHA256 özetini çıkarır", "hash <metin>")
+@komut("hash", "hash", "Araçlar", "Metnin MD5 / SHA1 / SHA256 özetini çıkarır", "Shows the MD5 / SHA1 / SHA256 hash of a text",
+       "<metin>", "<text>")
 def k_hash(arg):
     if not arg:
         kullanim("hash")
@@ -1153,8 +1301,8 @@ def k_hash(arg):
         print(f"  {T.ANA}{ad:<7}{RESET} {hashlib.new(ad, arg.encode()).hexdigest()}")
 
 
-@komut("taban", "Araçlar", "Sayıyı ikilik, sekizlik, onluk ve on altılık tabanda gösterir",
-       "taban <sayı|0b1010|0xff>", ("base",))
+@komut("taban", "base", "Araçlar", "Sayıyı ikilik, sekizlik, onluk ve on altılık tabanda gösterir",
+       "Shows a number in binary, octal, decimal and hexadecimal", "<sayı|0b1010|0xff>", "<number|0b1010|0xff>")
 def k_taban(arg):
     try:
         n = int(arg.strip(), 0)
@@ -1163,19 +1311,23 @@ def k_taban(arg):
         return
     ikili = format(abs(n), "b")
     ikili = " ".join(ikili[max(0, i - 4):i] for i in range(len(ikili), 0, -4)[::-1])
-    for ad, deger in (("Onluk (10)", n), ("İkilik (2)", ("-" if n < 0 else "") + ikili),
-                      ("Sekizlik (8)", oct(n)), ("On altılık (16)", hex(n).upper().replace("0X", "0x"))):
+    for ad, deger in ((tr_en("Onluk (10)", "Decimal (10)"), n),
+                      (tr_en("İkilik (2)", "Binary (2)"), ("-" if n < 0 else "") + ikili),
+                      (tr_en("Sekizlik (8)", "Octal (8)"), oct(n)),
+                      (tr_en("On altılık (16)", "Hexadecimal (16)"), hex(n).upper().replace("0X", "0x"))):
         print(f"  {T.ANA}{ad:<17}{RESET} {BEYAZ}{deger}{RESET}")
 
 
-@komut("asal", "Araçlar", "Sayı asal mı bakar, değilse çarpanlarına ayırır", "asal <sayı>", ("prime",))
+@komut("asal", "prime", "Araçlar", "Sayı asal mı bakar, değilse çarpanlarına ayırır",
+       "Checks if a number is prime; if not, splits it into prime factors", "<sayı>", "<number>")
 def k_asal(arg):
     try:
         n = int(arg)
         if not 2 <= n <= 10 ** 13:
             raise ValueError
     except ValueError:
-        hata("2 ile 10 trilyon arasında bir tam sayı yaz. Örnek: asal 97")
+        hata(tr_en("2 ile 10 trilyon arasında bir tam sayı yaz. Örnek: asal 97",
+                   "Enter a whole number between 2 and 10 trillion. Example: prime 97"))
         return
     carpanlar, kalan, bolen = Counter(), n, 2
     while bolen * bolen <= kalan:
@@ -1186,13 +1338,14 @@ def k_asal(arg):
     if kalan > 1:
         carpanlar[kalan] += 1
     if carpanlar[n] == 1:
-        soyle(f"✓ {BEYAZ}{KALIN}{n}{RESET}{T.ANA} bir ASAL sayı! 💎")
+        soyle(tr_en(f"✓ {BEYAZ}{KALIN}{n}{RESET}{T.ANA} bir ASAL sayı! 💎", f"✓ {BEYAZ}{KALIN}{n}{RESET}{T.ANA} is a PRIME number! 💎"))
     else:
         yazim = " × ".join(f"{p}^{u}" if u > 1 else str(p) for p, u in sorted(carpanlar.items()))
-        soyle(f"✗ {n} asal değil  =  {BEYAZ}{KALIN}{yazim}", SARI)
+        soyle(tr_en(f"✗ {n} asal değil  =  ", f"✗ {n} is not prime  =  ") + f"{BEYAZ}{KALIN}{yazim}", SARI)
 
 
-@komut("fib", "Araçlar", "Fibonacci dizisinin ilk n terimini yazar", "fib [n]", ("fibonacci",))
+@komut("fib", "fib fibonacci", "Araçlar", "Fibonacci dizisinin ilk n terimini yazar", "Prints the first n Fibonacci numbers",
+       "[n]", "[n]")
 def k_fib(arg):
     try:
         n = min(max(int(arg or 15), 1), 100)
@@ -1206,34 +1359,37 @@ def k_fib(arg):
     print(textwrap.fill(", ".join(dizi), genislik() - 4, initial_indent="  ", subsequent_indent="  "))
 
 
-@komut("faktoriyel", "Araçlar", "n! hesaplar", "faktoriyel <n>", ("fakt",))
+@komut("faktoriyel fakt", "factorial", "Araçlar", "n! hesaplar", "Calculates n!", "<n>", "<n>")
 def k_faktoriyel(arg):
     try:
         n = int(arg)
         if not 0 <= n <= 1000:
             raise ValueError
     except ValueError:
-        hata("0 ile 1000 arasında bir sayı yaz. Örnek: faktoriyel 10")
+        hata(tr_en("0 ile 1000 arasında bir sayı yaz. Örnek: faktoriyel 10",
+                   "Enter a number between 0 and 1000. Example: factorial 10"))
         return
     soyle(f"{n}! = {BEYAZ}{KALIN}{sayi_bicimle(math.factorial(n))}")
 
 
-@komut("yuzde", "Araçlar", "Yüzde hesabı yapar", "yuzde <a> <b>")
+@komut("yuzde", "percent", "Araçlar", "Yüzde hesabı yapar", "Does percentage math", "<a> <b>", "<a> <b>")
 def k_yuzde(arg):
     try:
         a, b = sayilar(arg)[:2]
     except ValueError:
         kullanim("yuzde")
-        soyle("Örnek: yuzde 20 150  →  150'nin %20'si ve 20'nin 150 içindeki payı", GRI)
+        soyle(tr_en("Örnek: yuzde 20 150  →  150'nin %20'si ve 20'nin 150 içindeki payı",
+                    "Example: percent 20 150  →  20% of 150, and how much of 150 is 20"), GRI)
         return
-    soyle(f"{b} × %{a}  = {BEYAZ}{KALIN}{sayi_bicimle(b * a / 100)}")
+    soyle(tr_en(f"{b} × %{a}  = ", f"{a}% of {b}  = ") + f"{BEYAZ}{KALIN}{sayi_bicimle(b * a / 100)}")
     if b:
-        soyle(f"{a} / {b}  = %{BEYAZ}{KALIN}{a / b * 100:.2f}")
+        soyle(f"{a} / {b}  = " + tr_en(f"%{BEYAZ}{KALIN}{a / b * 100:.2f}", f"{BEYAZ}{KALIN}{a / b * 100:.2f}%"))
     if a:
-        soyle(f"{a} → {b} değişimi: %{(b - a) / a * 100:+.2f}", GRI)
+        soyle(tr_en(f"{a} → {b} değişimi: %{(b - a) / a * 100:+.2f}", f"Change from {a} → {b}: {(b - a) / a * 100:+.2f}%"), GRI)
 
 
-@komut("istat", "Araçlar", "Sayıların ortalaması, medyanı, en büyüğü...", "istat <sayılar>", ("ortalama", "stat"))
+@komut("istat ortalama", "average stat", "Araçlar", "Sayıların ortalaması, medyanı, en büyüğü...",
+       "Mean, median, largest... of a list of numbers", "<sayılar>", "<numbers>")
 def k_istat(arg):
     try:
         liste = sayilar(arg)
@@ -1241,17 +1397,18 @@ def k_istat(arg):
             raise ValueError
     except ValueError:
         kullanim("istat")
-        soyle("Örnek: istat 70 85 90 45 100", GRI)
+        soyle(tr_en("Örnek: istat 70 85 90 45 100", "Example: average 70 85 90 45 100"), GRI)
         return
-    degerler = [("Adet", len(liste)), ("Toplam", sum(liste)), ("Ortalama", statistics.mean(liste)),
-                ("Medyan", statistics.median(liste)), ("En küçük", min(liste)), ("En büyük", max(liste))]
+    degerler = [(tr_en("Adet", "Count"), len(liste)), (tr_en("Toplam", "Sum"), sum(liste)),
+                (tr_en("Ortalama", "Mean"), statistics.mean(liste)), (tr_en("Medyan", "Median"), statistics.median(liste)),
+                (tr_en("En küçük", "Smallest"), min(liste)), (tr_en("En büyük", "Largest"), max(liste))]
     if len(liste) > 1:
-        degerler.append(("Std. sapma", statistics.stdev(liste)))
+        degerler.append((tr_en("Std. sapma", "Std. dev."), statistics.stdev(liste)))
     for ad, deger in degerler:
         print(f"  {T.ANA}{ad:<11}{RESET} {BEYAZ}{sayi_bicimle(round(deger, 4) if isinstance(deger, float) else deger)}{RESET}")
 
 
-@komut("sirala", "Araçlar", "Sayıları ya da kelimeleri sıralar", "sirala <öğeler>", ("sort",))
+@komut("sirala", "sort", "Araçlar", "Sayıları ya da kelimeleri sıralar", "Sorts numbers or words", "<öğeler>", "<items>")
 def k_sirala(arg):
     if not arg:
         kullanim("sirala")
@@ -1263,22 +1420,26 @@ def k_sirala(arg):
     soyle("↑ " + ", ".join(sonuc), BEYAZ)
 
 
-@komut("sicaklik", "Araçlar", "Sıcaklığı °C / °F / K birimlerine çevirir", "sicaklik <değer>[c|f|k]", ("derece",))
+@komut("sicaklik derece", "temp", "Araçlar", "Sıcaklığı °C / °F / K birimlerine çevirir",
+       "Converts a temperature between °C / °F / K", "<değer>[c|f|k]", "<value>[c|f|k]")
 def k_sicaklik(arg):
     eslesme = re.fullmatch(r"\s*(-?[\d.,]+)\s*°?\s*([cfkCFK]?)\s*", arg)
     if not eslesme:
         kullanim("sicaklik")
-        soyle("Örnek: sicaklik 36.6   •   sicaklik 100f   •   sicaklik 300k", GRI)
+        soyle(tr_en("Örnek: sicaklik 36.6   •   sicaklik 100f   •   sicaklik 300k",
+                    "Example: temp 36.6   •   temp 100f   •   temp 300k"), GRI)
         return
     deger, birim = float(eslesme.group(1).replace(",", ".")), (eslesme.group(2) or "c").lower()
     c = {"c": deger, "f": (deger - 32) * 5 / 9, "k": deger - 273.15}[birim]
     if c < -273.15:
-        hata("Mutlak sıfırın altı yok aga, fizik buna izin vermiyor. 🥶")
+        hata(tr_en("Mutlak sıfırın altı yok aga, fizik buna izin vermiyor. 🥶",
+                   "Nothing is colder than absolute zero, buddy. Physics won't allow it. 🥶"))
         return
     soyle(f"🌡  {BEYAZ}{c:.2f} °C{RESET}   {T.ANA}{c * 9 / 5 + 32:.2f} °F{RESET}   {CAMGOBEGI}{c + 273.15:.2f} K")
 
 
-@komut("vki", "Araçlar", "Vücut kitle indeksini hesaplar", "vki <kilo> <boy_cm>", ("bmi",))
+@komut("vki", "bmi", "Araçlar", "Vücut kitle indeksini hesaplar", "Calculates your body mass index (BMI)",
+       "<kilo> <boy_cm>", "<weight_kg> <height_cm>")
 def k_vki(arg):
     try:
         kilo, boy = sayilar(arg)[:2]
@@ -1287,19 +1448,22 @@ def k_vki(arg):
     except (ValueError, ZeroDivisionError):
         kullanim("vki")
         return
-    for sinir, ad, renk in ((18.5, "Zayıf", SARI), (25, "Normal", YESIL), (30, "Fazla kilolu", SARI),
-                            (float("inf"), "Obez", KIRMIZI)):
+    for sinir, ad, renk in ((18.5, tr_en("Zayıf", "Underweight"), SARI), (25, "Normal", YESIL),
+                            (30, tr_en("Fazla kilolu", "Overweight"), SARI), (float("inf"), tr_en("Obez", "Obese"), KIRMIZI)):
         if vki < sinir:
-            soyle(f"⚖  VKİ: {BEYAZ}{KALIN}{vki:.1f}{RESET}  →  {renk}{ad}")
+            soyle(f"⚖  {tr_en('VKİ', 'BMI')}: {BEYAZ}{KALIN}{vki:.1f}{RESET}  →  {renk}{ad}")
             break
-    soyle("Bilgi amaçlıdır, doktor tavsiyesi değildir.", GRI)
+    soyle(tr_en("Bilgi amaçlıdır, doktor tavsiyesi değildir.", "For information only, not medical advice."), GRI)
 
 
-@komut("yas", "Araçlar", "Yaşını ve yaşadığın gün sayısını hesaplar", "yas <GG.AA.YYYY | yıl>", ("age",))
+@komut("yas", "age", "Araçlar", "Yaşını ve yaşadığın gün sayısını hesaplar",
+       "Calculates your age and how many days you've been alive", "<GG.AA.YYYY | yıl>", "<DD.MM.YYYY | year>")
 def k_yas(arg):
     bugun = datetime.date.today()
     if arg.strip().isdigit() and len(arg.strip()) == 4:
-        soyle(f"🎂 Bu yıl {BEYAZ}{KALIN}{bugun.year - int(arg)}{RESET}{T.ANA} yaşına giriyorsun/girdin.")
+        yas = bugun.year - int(arg)
+        soyle(tr_en(f"🎂 Bu yıl {BEYAZ}{KALIN}{yas}{RESET}{T.ANA} yaşına giriyorsun/girdin.",
+                    f"🎂 You turn (or turned) {BEYAZ}{KALIN}{yas}{RESET}{T.ANA} this year."))
         return
     try:
         dogum = tarih_coz(arg)
@@ -1313,13 +1477,17 @@ def k_yas(arg):
         sonraki = datetime.date(bugun.year, 3, 1)
     if sonraki < bugun:
         sonraki = sonraki.replace(year=bugun.year + 1)
-    gun_sayisi = f"{(bugun - dogum).days:,}".replace(",", ".")
-    soyle(f"🎂 {BEYAZ}{KALIN}{yas}{RESET}{T.ANA} yaşındasın, tam {gun_sayisi} gündür yaşıyorsun!")
+    gun_sayisi = (bugun - dogum).days
+    soyle(tr_en(f"🎂 {BEYAZ}{KALIN}{yas}{RESET}{T.ANA} yaşındasın, tam {binlik(gun_sayisi)} gündür yaşıyorsun!",
+                f"🎂 You are {BEYAZ}{KALIN}{cogul(yas, 'year')}{RESET}{T.ANA} old and have been alive for "
+                f"{cogul(gun_sayisi, 'day')}!"))
     kalan = (sonraki - bugun).days
-    soyle("🎉 İYİ Kİ DOĞDUN! 🎉" if kalan == 0 else f"Bir sonraki doğum gününe {kalan} gün var.", SARI)
+    soyle(tr_en("🎉 İYİ Kİ DOĞDUN! 🎉", "🎉 HAPPY BIRTHDAY! 🎉") if kalan == 0 else
+          tr_en(f"Bir sonraki doğum gününe {kalan} gün var.", f"{cogul(kalan, 'day')} until your next birthday."), SARI)
 
 
-@komut("gun", "Araçlar", "Bir tarihe kaç gün kaldığını / geçtiğini söyler", "gun <GG.AA.YYYY>", ("gunsay",))
+@komut("gun gunsay", "days", "Araçlar", "Bir tarihe kaç gün kaldığını / geçtiğini söyler",
+       "Tells how many days are left until a date / have passed since it", "<GG.AA.YYYY>", "<DD.MM.YYYY>")
 def k_gun(arg):
     try:
         hedef = tarih_coz(arg)
@@ -1327,19 +1495,23 @@ def k_gun(arg):
         kullanim("gun")
         return
     fark = (hedef - datetime.date.today()).days
-    gun_adi = GUNLER[hedef.weekday()]
+    tarih = f"{hedef:%d.%m.%Y} ({gun_adi(hedef)})"
     if fark > 0:
-        soyle(f"⏳ {hedef:%d.%m.%Y} ({gun_adi}) tarihine {BEYAZ}{KALIN}{fark}{RESET}{T.ANA} gün var.")
+        soyle(tr_en(f"⏳ {tarih} tarihine {BEYAZ}{KALIN}{fark}{RESET}{T.ANA} gün var.",
+                    f"⏳ {tarih} is {BEYAZ}{KALIN}{cogul(fark, 'day')}{RESET}{T.ANA} away."))
     elif fark < 0:
-        soyle(f"⌛ {hedef:%d.%m.%Y} ({gun_adi}) üzerinden {BEYAZ}{KALIN}{-fark}{RESET}{T.ANA} gün geçti.")
+        soyle(tr_en(f"⌛ {tarih} üzerinden {BEYAZ}{KALIN}{-fark}{RESET}{T.ANA} gün geçti.",
+                    f"⌛ {tarih} was {BEYAZ}{KALIN}{cogul(-fark, 'day')}{RESET}{T.ANA} ago."))
     else:
-        soyle("📌 O gün bugün!")
+        soyle(tr_en("📌 O gün bugün!", "📌 That's today!"))
 
 
-@komut("unix", "Araçlar", "Unix zaman damgasını gösterir / çevirir", "unix [zaman_damgası]", ("timestamp",))
+@komut("unix", "unix timestamp", "Araçlar", "Unix zaman damgasını gösterir / çevirir", "Shows / converts a Unix timestamp",
+       "[zaman_damgası]", "[timestamp]")
 def k_unix(arg):
     if not arg:
-        soyle(f"⏲  Şu an: {BEYAZ}{KALIN}{int(time.time())}{RESET}  {GRI}(1 Ocak 1970'ten beri geçen saniye)")
+        soyle(tr_en(f"⏲  Şu an: {BEYAZ}{KALIN}{int(time.time())}{RESET}  {GRI}(1 Ocak 1970'ten beri geçen saniye)",
+                    f"⏲  Now: {BEYAZ}{KALIN}{int(time.time())}{RESET}  {GRI}(seconds since 1 January 1970)"))
         return
     try:
         an = datetime.datetime.fromtimestamp(float(arg))
@@ -1349,7 +1521,8 @@ def k_unix(arg):
     soyle(f"⏲  {arg} = {BEYAZ}{an:%d.%m.%Y %H:%M:%S}")
 
 
-@komut("sayac", "Araçlar", "Dev rakamlarla geri sayım yapar", "sayac <saniye | dk:sn>", ("geri", "timer"))
+@komut("sayac geri", "timer", "Araçlar", "Dev rakamlarla geri sayım yapar", "Counts down with giant digits",
+       "<saniye | dk:sn>", "<seconds | min:sec>")
 def k_sayac(arg):
     try:
         if ":" in arg:
@@ -1361,7 +1534,7 @@ def k_sayac(arg):
             raise ValueError
     except ValueError:
         kullanim("sayac")
-        soyle("Örnek: sayac 10   •   sayac 2:30", GRI)
+        soyle(tr_en("Örnek: sayac 10   •   sayac 2:30", "Example: timer 10   •   timer 2:30"), GRI)
         return
     bitis = time.time() + toplam
     ilk = True
@@ -1370,20 +1543,21 @@ def k_sayac(arg):
             kalan = max(0, math.ceil(bitis - time.time()))
             renk = KIRMIZI if kalan <= 5 else SARI if kalan <= 10 else T.ANA
             yerinde_yaz(["  " + renk + s for s in buyuk_yazi(f"{kalan // 60:02d}:{kalan % 60:02d}")]
-                        + [f"  {GRI}iptal için bir tuşa bas{RESET}"], ilk)
+                        + [f"  {GRI}{tr_en('iptal için bir tuşa bas', 'press any key to cancel')}{RESET}"], ilk)
             ilk = False
             if kalan == 0:
                 break
             if tus_bekle(0.2):
-                soyle("Geri sayım iptal edildi.", SARI)
+                soyle(tr_en("Geri sayım iptal edildi.", "Countdown cancelled."), SARI)
                 return
     for _ in range(3):
         sys.stdout.write("\a")
-        soyle("⏰ SÜRE DOLDU! ⏰", KIRMIZI + KALIN)
+        soyle(tr_en("⏰ SÜRE DOLDU! ⏰", "⏰ TIME'S UP! ⏰"), KIRMIZI + KALIN)
         time.sleep(0.3)
 
 
-@komut("kronometre", "Araçlar", "Kronometre: boşluk = tur, başka tuş = durdur", takma=("stopwatch",))
+@komut("kronometre", "stopwatch", "Araçlar", "Kronometre: boşluk = tur, başka tuş = durdur",
+       "Stopwatch: space = lap, any other key = stop")
 def k_kronometre(arg):
     baslangic = time.time()
     turlar = []
@@ -1392,57 +1566,64 @@ def k_kronometre(arg):
         while True:
             gecen = time.time() - baslangic
             metin = f"{int(gecen // 60):02d}:{int(gecen % 60):02d}.{int(gecen * 10 % 10)}"
-            son_tur = f"  {GRI}tur {len(turlar)}: {turlar[-1]:.1f} sn{RESET}" if turlar else ""
+            son_tur = f"  {GRI}{tr_en('tur', 'lap')} {len(turlar)}: {turlar[-1]:.1f} {tr_en('sn', 's')}{RESET}" if turlar else ""
             yerinde_yaz(["  " + T.ANA + s for s in buyuk_yazi(metin)]
-                        + [f"  {GRI}[boşluk] tur   [başka tuş] durdur{RESET}{son_tur}"], ilk)
+                        + [f"  {GRI}{tr_en('[boşluk] tur   [başka tuş] durdur', '[space] lap   [any other key] stop')}"
+                           f"{RESET}{son_tur}"], ilk)
             ilk = False
             tus = tus_bekle(0.05)
             if tus == "BOSLUK":
                 turlar.append(gecen)
             elif tus:
                 break
-    soyle(f"⏱  Toplam: {BEYAZ}{KALIN}{gecen:.2f} saniye")
+    soyle(tr_en(f"⏱  Toplam: {BEYAZ}{KALIN}{gecen:.2f} saniye", f"⏱  Total: {BEYAZ}{KALIN}{gecen:.2f} seconds"))
     for i, tur in enumerate(turlar, 1):
-        soyle(f"Tur {i}: {tur:.2f} sn", GRI)
+        soyle(tr_en(f"Tur {i}: {tur:.2f} sn", f"Lap {i}: {tur:.2f} s"), GRI)
 
 
-@komut("say", "Araçlar", "Metindeki harf, kelime ve sesli harfleri sayar", "say <metin>", ("wc",))
+@komut("say", "count wc", "Araçlar", "Metindeki harf, kelime ve sesli harfleri sayar",
+       "Counts the letters, words and vowels in a text", "<metin>", "<text>")
 def k_say(arg):
     if not arg:
         kullanim("say")
         return
-    for ad, deger in (("Karakter", len(arg)), ("Boşluksuz", len(arg.replace(" ", ""))),
-                      ("Kelime", len(arg.split())), ("Sesli harf", sum(h in "aeıioöuüAEIİOÖUÜ" for h in arg)),
-                      ("Rakam", sum(h.isdigit() for h in arg))):
+    sesliler = tr_en("aeıioöuüAEIİOÖUÜ", "aeiouAEIOU")
+    for ad, deger in ((tr_en("Karakter", "Characters"), len(arg)), (tr_en("Boşluksuz", "No spaces"), len(arg.replace(" ", ""))),
+                      (tr_en("Kelime", "Words"), len(arg.split())), (tr_en("Sesli harf", "Vowels"), sum(h in sesliler for h in arg)),
+                      (tr_en("Rakam", "Digits"), sum(h.isdigit() for h in arg))):
         print(f"  {T.ANA}{ad:<11}{RESET} {BEYAZ}{deger}{RESET}")
 
 
-@komut("ters", "Araçlar", "Metni tersten yazar", "ters <metin>", ("reverse",))
+@komut("ters", "reverse", "Araçlar", "Metni tersten yazar", "Writes a text backwards", "<metin>", "<text>")
 def k_ters(arg):
     soyle(arg[::-1], BEYAZ) if arg else kullanim("ters")
 
 
-@komut("buyuk", "Araçlar", "METNİ BÜYÜK HARFE ÇEVİRİR (Türkçe uyumlu)", "buyuk <metin>", ("upper",))
+@komut("buyuk", "upper", "Araçlar", "METNİ BÜYÜK HARFE ÇEVİRİR (Türkçe uyumlu)", "CONVERTS TEXT TO UPPERCASE",
+       "<metin>", "<text>")
 def k_buyuk(arg):
-    soyle(tr_buyuk(arg), BEYAZ) if arg else kullanim("buyuk")
+    soyle(buyuk_harf(arg), BEYAZ) if arg else kullanim("buyuk")
 
 
-@komut("kucuk", "Araçlar", "metni küçük harfe çevirir (türkçe uyumlu)", "kucuk <metin>", ("lower",))
+@komut("kucuk", "lower", "Araçlar", "metni küçük harfe çevirir (türkçe uyumlu)", "converts text to lowercase",
+       "<metin>", "<text>")
 def k_kucuk(arg):
-    soyle(tr_kucuk(arg), BEYAZ) if arg else kullanim("kucuk")
+    soyle(kucuk_harf(arg), BEYAZ) if arg else kullanim("kucuk")
 
 
-@komut("palindrom", "Araçlar", "Metin tersten de aynı mı okunuyor?", "palindrom <metin>")
+@komut("palindrom", "palindrome", "Araçlar", "Metin tersten de aynı mı okunuyor?", "Does the text read the same backwards?",
+       "<metin>", "<text>")
 def k_palindrom(arg):
     if not arg:
         kullanim("palindrom")
         return
-    sade = re.sub(r"[^\w]", "", tr_kucuk(arg))
+    sade = re.sub(r"[^\w]", "", kucuk_harf(arg))
     if sade and sade == sade[::-1]:
-        soyle(f"✓ '{arg}' bir palindrom! Tersten de aynı. 🔁")
+        soyle(tr_en(f"✓ '{arg}' bir palindrom! Tersten de aynı. 🔁", f"✓ '{arg}' is a palindrome! Same backwards. 🔁"))
     else:
-        soyle(f"✗ Palindrom değil. Tersi: {arg[::-1]}", SARI)
-        soyle("Örnek palindromlar: ey edip adanada pide ye • kabak • 12321", GRI)
+        soyle(tr_en(f"✗ Palindrom değil. Tersi: {arg[::-1]}", f"✗ Not a palindrome. Backwards: {arg[::-1]}"), SARI)
+        soyle(tr_en("Örnek palindromlar: ey edip adanada pide ye • kabak • 12321",
+                    "Example palindromes: never odd or even • racecar • 12321"), GRI)
 
 
 LOREM = ("lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore "
@@ -1452,7 +1633,8 @@ LOREM = ("lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod 
          "id est laborum").split()
 
 
-@komut("lorem", "Araçlar", "Deneme amaçlı sahte yazı (lorem ipsum) üretir", "lorem [kelime sayısı]")
+@komut("lorem", "lorem", "Araçlar", "Deneme amaçlı sahte yazı (lorem ipsum) üretir", "Generates placeholder text (lorem ipsum)",
+       "[kelime sayısı]", "[word count]")
 def k_lorem(arg):
     try:
         adet = min(max(int(arg or 40), 1), 500)
@@ -1464,7 +1646,8 @@ def k_lorem(arg):
     print(textwrap.fill(metin, min(80, genislik() - 4), initial_indent="  ", subsequent_indent="  "))
 
 
-@komut("hexrenk", "Araçlar", "Bir renk kodunu (#ff8800) ekranda boyar", "hexrenk [#RRGGBB]", ("color",))
+@komut("hexrenk", "hexcolor color", "Araçlar", "Bir renk kodunu (#ff8800) ekranda boyar",
+       "Paints a color code (#ff8800) on the screen", "[#RRGGBB]", "[#RRGGBB]")
 def k_hexrenk(arg):
     kod = arg.strip().lstrip("#") or "".join(random.choice("0123456789abcdef") for _ in range(6))
     if len(kod) == 3:
@@ -1479,7 +1662,7 @@ def k_hexrenk(arg):
     zit = f"#{255 - r:02x}{255 - g:02x}{255 - b:02x}"
     for _ in range(3):
         print(f"  \033[48;2;{r};{g};{b}m{' ' * 24}{RESET}  \033[48;2;{255 - r};{255 - g};{255 - b}m{' ' * 6}{RESET}")
-    soyle(f"#{kod.lower()}  •  rgb({r}, {g}, {b})  •  zıt renk: {zit}", BEYAZ)
+    soyle(f"#{kod.lower()}  •  rgb({r}, {g}, {b})  •  {tr_en('zıt renk', 'inverted')}: {zit}", BEYAZ)
 
 
 # ═══════════════════════════ KOMUTLAR: ŞİFRELEME ═══════════════════════════
@@ -1501,61 +1684,68 @@ def cevir_ve_goster(etiket, sonuc):
                         break_on_hyphens=False) if sonuc else "")
 
 
-@komut("ikili", "Şifreleme", "Metni 0 ve 1'lere (binary) çevirir", "ikili <metin>", ("binary",))
+@komut("ikili", "binary", "Şifreleme", "Metni 0 ve 1'lere (binary) çevirir", "Turns text into 0s and 1s (binary)",
+       "<metin>", "<text>")
 @metin_gerekli("ikili")
 def k_ikili(arg):
-    cevir_ve_goster("İkilik", " ".join(f"{b:08b}" for b in arg.encode()))
+    cevir_ve_goster(tr_en("İkilik", "Binary"), " ".join(f"{b:08b}" for b in arg.encode()))
 
 
-@komut("ikilicoz", "Şifreleme", "0 ve 1'leri tekrar metne çevirir", "ikilicoz <01000001 ...>", ("binarycoz",))
+@komut("ikilicoz binarycoz", "unbinary", "Şifreleme", "0 ve 1'leri tekrar metne çevirir", "Turns 0s and 1s back into text",
+       "<01000001 ...>", "<01000001 ...>")
 @metin_gerekli("ikilicoz")
 def k_ikilicoz(arg):
     bitler = re.sub(r"[^01]", "", arg)
     if len(bitler) % 8:
-        hata("Bit sayısı 8'in katı olmalı.")
+        hata(tr_en("Bit sayısı 8'in katı olmalı.", "The number of bits must be a multiple of 8."))
         return
     veri = bytes(int(bitler[i:i + 8], 2) for i in range(0, len(bitler), 8))
-    cevir_ve_goster("Metin", veri.decode("utf-8", errors="replace"))
+    cevir_ve_goster(tr_en("Metin", "Text"), veri.decode("utf-8", errors="replace"))
 
 
-@komut("hex", "Şifreleme", "Metni on altılık (hex) koda çevirir", "hex <metin>")
+@komut("hex", "hex", "Şifreleme", "Metni on altılık (hex) koda çevirir", "Turns text into hexadecimal (hex) code",
+       "<metin>", "<text>")
 @metin_gerekli("hex")
 def k_hex(arg):
     cevir_ve_goster("Hex", arg.encode().hex(" "))
 
 
-@komut("hexcoz", "Şifreleme", "Hex kodunu metne çevirir", "hexcoz <48 65 6c 6c 6f>")
+@komut("hexcoz", "unhex", "Şifreleme", "Hex kodunu metne çevirir", "Turns hex code back into text",
+       "<48 65 6c 6c 6f>", "<48 65 6c 6c 6f>")
 @metin_gerekli("hexcoz")
 def k_hexcoz(arg):
     try:
-        cevir_ve_goster("Metin", bytes.fromhex(re.sub(r"[^0-9a-fA-F]", "", arg)).decode("utf-8", errors="replace"))
+        cevir_ve_goster(tr_en("Metin", "Text"),
+                        bytes.fromhex(re.sub(r"[^0-9a-fA-F]", "", arg)).decode("utf-8", errors="replace"))
     except ValueError:
-        hata("Geçersiz hex kodu.")
+        hata(tr_en("Geçersiz hex kodu.", "Invalid hex code."))
 
 
-@komut("base64", "Şifreleme", "Metni Base64 ile kodlar", "base64 <metin>", ("b64",))
+@komut("base64", "base64 b64", "Şifreleme", "Metni Base64 ile kodlar", "Encodes text with Base64", "<metin>", "<text>")
 @metin_gerekli("base64")
 def k_base64(arg):
     cevir_ve_goster("Base64", base64.b64encode(arg.encode()).decode())
 
 
-@komut("base64coz", "Şifreleme", "Base64 kodunu çözer", "base64coz <kod>", ("b64coz",))
+@komut("base64coz b64coz", "unbase64", "Şifreleme", "Base64 kodunu çözer", "Decodes Base64 code", "<kod>", "<code>")
 @metin_gerekli("base64coz")
 def k_base64coz(arg):
     try:
-        cevir_ve_goster("Metin", base64.b64decode(arg.strip() + "=" * (-len(arg.strip()) % 4)).decode("utf-8", errors="replace"))
+        cevir_ve_goster(tr_en("Metin", "Text"),
+                        base64.b64decode(arg.strip() + "=" * (-len(arg.strip()) % 4)).decode("utf-8", errors="replace"))
     except ValueError:
-        hata("Geçersiz Base64 kodu.")
+        hata(tr_en("Geçersiz Base64 kodu.", "Invalid Base64 code."))
 
 
-TR_KUCUK = "abcçdefgğhıijklmnoöprsştuüvyz"
-TR_BUYUK = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ"
+# Sezar şifresi dile göre alfabe seçer: Türkçede 29 harfli Türk alfabesi, İngilizcede A-Z
+ALFABELER = {"tr": ("abcçdefgğhıijklmnoöprsştuüvyz", "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ"),
+             "en": (string.ascii_lowercase, string.ascii_uppercase)}
 
 
 def sezar_kaydir(metin, adim):
     sonuc = ""
     for harf in metin:
-        for alfabe in (TR_KUCUK, TR_BUYUK):
+        for alfabe in ALFABELER[dil()]:
             if harf in alfabe:
                 harf = alfabe[(alfabe.index(harf) + adim) % len(alfabe)]
                 break
@@ -1563,42 +1753,50 @@ def sezar_kaydir(metin, adim):
     return sonuc
 
 
-@komut("sezar", "Şifreleme", "Sezar şifresi: her harfi n adım kaydırır (Türk alfabesi)",
-       "sezar <adım> <metin>", ("caesar",))
+@komut("sezar", "caesar", "Şifreleme", "Sezar şifresi: her harfi n adım kaydırır (Türk alfabesi)",
+       "Caesar cipher: shifts every letter n steps (A-Z)", "<adım> <metin>", "<shift> <text>")
 def k_sezar(arg):
     parcalar = arg.split(maxsplit=1)
     try:
         adim, metin = int(parcalar[0]), parcalar[1]
     except (ValueError, IndexError):
         kullanim("sezar")
-        soyle("Örnek: sezar 3 merhaba   (çözmek için: sezar -3 ...)", GRI)
+        soyle(tr_en("Örnek: sezar 3 merhaba   (çözmek için: sezar -3 ...)",
+                    "Example: caesar 3 hello   (to decode: caesar -3 ...)"), GRI)
         return
-    cevir_ve_goster(f"Sezar ({adim:+d})", sezar_kaydir(metin, adim))
+    cevir_ve_goster(tr_en(f"Sezar ({adim:+d})", f"Caesar ({adim:+d})"), sezar_kaydir(metin, adim))
 
 
-YAYGIN_KELIMELER = {"ve", "bir", "bu", "da", "de", "ne", "ben", "sen", "biz", "merhaba", "selam", "panda", "kod",
-                    "gizli", "mesaj", "için", "ile", "çok", "var", "yok", "nasılsın", "iyi", "evet", "hayır",
-                    "ama", "gibi", "şifre", "bambu", "dünya", "the", "and", "hello", "yarın", "bugün", "saat",
-                    "okul", "gel", "git", "buluşalım", "seni", "beni", "hadi", "tamam"}
+YAYGIN_KELIMELER = {  # Sezar kırıcı, bu kelimelerden en çok içeren çözümü seçer
+    "tr": {"ve", "bir", "bu", "da", "de", "ne", "ben", "sen", "biz", "merhaba", "selam", "panda", "kod",
+           "gizli", "mesaj", "için", "ile", "çok", "var", "yok", "nasılsın", "iyi", "evet", "hayır",
+           "ama", "gibi", "şifre", "bambu", "dünya", "the", "and", "hello", "yarın", "bugün", "saat",
+           "okul", "gel", "git", "buluşalım", "seni", "beni", "hadi", "tamam"},
+    "en": {"the", "and", "is", "a", "i", "you", "to", "of", "in", "it", "hello", "hi", "panda", "code",
+           "secret", "message", "meet", "me", "at", "tomorrow", "today", "school", "yes", "no", "not", "this",
+           "that", "for", "with", "are", "was", "bamboo", "world", "good", "we", "see", "go", "come", "let",
+           "time", "password", "my", "your", "ok"},
+}
 
 
-@komut("sezarkir", "Şifreleme", "Sezar şifresini tüm ihtimalleri deneyerek kırar", "sezarkir <şifreli metin>",
-       ("caesarkir",))
+@komut("sezarkir caesarkir", "caesarcrack", "Şifreleme", "Sezar şifresini tüm ihtimalleri deneyerek kırar",
+       "Cracks a Caesar cipher by trying every possible shift", "<şifreli metin>", "<encrypted text>")
 @metin_gerekli("sezarkir")
 def k_sezarkir(arg):
     adaylar = []
-    for adim in range(1, len(TR_KUCUK)):
+    for adim in range(1, len(ALFABELER[dil()][0])):
         aday = sezar_kaydir(arg, -adim)
-        puan = sum(k in YAYGIN_KELIMELER for k in re.findall(r"\w+", tr_kucuk(aday)))
+        puan = sum(k in YAYGIN_KELIMELER[dil()] for k in re.findall(r"\w+", kucuk_harf(aday)))
         adaylar.append((puan, adim, aday))
     en_iyi = max(adaylar)
     for puan, adim, aday in adaylar:
-        isaret = f"  {YESIL}{KALIN}◀ büyük ihtimalle bu!{RESET}" if puan and (puan, adim, aday) == en_iyi else ""
+        isaret = (f"  {YESIL}{KALIN}◀ {tr_en('büyük ihtimalle bu!', 'most likely this one!')}{RESET}"
+                  if puan and (puan, adim, aday) == en_iyi else "")
         print(f"  {GRI}{adim:>2}{RESET} {BEYAZ if isaret else ACIK_GRI}{aday[:genislik() - 30]}{RESET}{isaret}")
 
 
-@komut("rot13", "Şifreleme", "ROT13: İngiliz alfabesini 13 kaydırır (iki kere yaparsan geri döner)",
-       "rot13 <metin>")
+@komut("rot13", "rot13", "Şifreleme", "ROT13: İngiliz alfabesini 13 kaydırır (iki kere yaparsan geri döner)",
+       "ROT13: shifts the English alphabet by 13 (do it twice to get the original back)", "<metin>", "<text>")
 @metin_gerekli("rot13")
 def k_rot13(arg):
     cevir_ve_goster("ROT13", codecs.encode(arg, "rot13"))
@@ -1613,18 +1811,19 @@ MORS = {"A": ".-", "B": "-...", "C": "-.-.", "Ç": "-.-..", "D": "-..", "E": "."
 MORS_TERS = {v: k for k, v in MORS.items()}
 
 
-@komut("mors", "Şifreleme", "Metni mors alfabesine çevirir", "mors <metin>", ("morse",))
+@komut("mors", "morse", "Şifreleme", "Metni mors alfabesine çevirir", "Turns text into Morse code", "<metin>", "<text>")
 @metin_gerekli("mors")
 def k_mors(arg):
-    kelimeler = [" ".join(MORS[h] for h in kelime if h in MORS) for kelime in tr_buyuk(arg).split()]
-    cevir_ve_goster("Mors", " / ".join(kelimeler))
+    kelimeler = [" ".join(MORS[h] for h in kelime if h in MORS) for kelime in buyuk_harf(arg).split()]
+    cevir_ve_goster(tr_en("Mors", "Morse"), " / ".join(kelimeler))
 
 
-@komut("morscoz", "Şifreleme", "Mors kodunu metne çevirir ('/' kelime ayırır)", "morscoz <.-- ...>")
+@komut("morscoz", "unmorse", "Şifreleme", "Mors kodunu metne çevirir ('/' kelime ayırır)",
+       "Turns Morse code back into text ('/' separates words)", "<.-- ...>", "<.-- ...>")
 @metin_gerekli("morscoz")
 def k_morscoz(arg):
     kelimeler = ["".join(MORS_TERS.get(k, "?") for k in kelime.split()) for kelime in arg.split("/")]
-    cevir_ve_goster("Metin", " ".join(kelimeler))
+    cevir_ve_goster(tr_en("Metin", "Text"), " ".join(kelimeler))
 
 
 def vigenere(metin, anahtar, yon):
@@ -1641,7 +1840,8 @@ def vigenere(metin, anahtar, yon):
     return sonuc
 
 
-@komut("vigenere", "Şifreleme", "Vigenère şifresi: anahtar kelimeyle şifreler", "vigenere <anahtar> <metin>")
+@komut("vigenere", "vigenere", "Şifreleme", "Vigenère şifresi: anahtar kelimeyle şifreler",
+       "Vigenère cipher: encrypts with a keyword", "<anahtar> <metin>", "<key> <text>")
 def k_vigenere(arg, yon=1):
     parcalar = arg.split(maxsplit=1)
     try:
@@ -1650,21 +1850,23 @@ def k_vigenere(arg, yon=1):
         kullanim("vigenerecoz" if yon < 0 else "vigenere")
 
 
-@komut("vigenerecoz", "Şifreleme", "Vigenère şifresini anahtarla çözer", "vigenerecoz <anahtar> <metin>")
+@komut("vigenerecoz", "unvigenere", "Şifreleme", "Vigenère şifresini anahtarla çözer",
+       "Decrypts a Vigenère cipher with its key", "<anahtar> <metin>", "<key> <text>")
 def k_vigenerecoz(arg):
     k_vigenere(arg, -1)
 
 
-@komut("ascii", "Şifreleme", "Her harfin bilgisayardaki sayı kodunu gösterir", "ascii <metin>", ("ord",))
+@komut("ascii", "ascii ord", "Şifreleme", "Her harfin bilgisayardaki sayı kodunu gösterir",
+       "Shows the number code of every character", "<metin>", "<text>")
 @metin_gerekli("ascii")
 def k_ascii(arg):
-    print(f"  {GRI}Harf   Onluk   Hex     İkilik{RESET}")
+    print(f"  {GRI}{tr_en('Harf   Onluk   Hex     İkilik', 'Char   Dec     Hex     Binary')}{RESET}")
     for harf in arg[:30]:
         kod = ord(harf)
         print(f"  {T.ANA}{harf!r:<6}{RESET} {BEYAZ}{kod:<7}{RESET} {kod:<#7x} {GRI}{kod:08b}{RESET}")
 
 
-@komut("asciitablo", "Şifreleme", "Tüm ASCII karakter tablosunu gösterir", takma=("asciitable",))
+@komut("asciitablo", "asciitable", "Şifreleme", "Tüm ASCII karakter tablosunu gösterir", "Shows the whole ASCII table")
 def k_asciitablo(arg):
     kodlar = list(range(32, 127))
     sutun = max(1, min(8, (genislik() - 2) // 10))
@@ -1675,7 +1877,7 @@ def k_asciitablo(arg):
 
 
 # ═══════════════════════════ KOMUTLAR: EĞLENCE ═══════════════════════════
-SOZLER = [
+SOZLER = {"tr": [
     "Önce çalıştır, sonra düzelt, sonra hızlandır.",
     "Kod bir kere yazılır, yüz kere okunur. Okuyanı düşün.",
     "Hata mesajı düşmanın değil, en dürüst arkadaşındır.",
@@ -1701,9 +1903,35 @@ SOZLER = [
     "Şifren '123456' ise, hacker'a zahmet etme demişsin demektir.",
     "Kod yazmak bir dil öğrenmek gibidir: konuştukça akıcılaşırsın.",
     "Git commit'lerin, günlüğün gibidir. Güzel yaz.",
-]
+], "en": [
+    "Make it work, then make it right, then make it fast.",
+    "Code is written once and read a hundred times. Think of the reader.",
+    "An error message isn't your enemy; it's your most honest friend.",
+    "Every expert was once a beginner who wrote 'print(\"hello\")'.",
+    "A computer does what you tell it to do, not what you meant.",
+    "The ugly code you write today is the nice code you'll fix tomorrow.",
+    "Copy-paste doesn't learn anything; typing does.",
+    "If you can't solve a problem, break it into smaller pieces.",
+    "The best debugger: a cup of tea and a 5-minute break.",
+    "Your code doesn't work? No problem. You learn when you find out why.",
+    "Coding a little every day beats coding a lot once in a while.",
+    "Give your variables good names; future you will thank you.",
+    "Systems don't get 'hacked'; carelessness does.",
+    "Your keyboard is your sword, your logic is your shield.",
+    "Don't be afraid to ask; everyone on Stack Overflow asked a question once.",
+    "There's no perfect code, only code that works and can be understood.",
+    "A panda eats bamboo 12 hours a day. You can munch on code for 12 minutes.",
+    "If you never make mistakes, you're not writing programs. If you fear mistakes, you'll never write one.",
+    "The first version is always embarrassing. If it isn't, you shipped it too late.",
+    "Knowledge grows when you share it; share your code.",
+    "Love the terminal and the terminal will love you back.",
+    "Think first, then write. Or write first, then think a lot.",
+    "If your password is '123456', you've done the hacker's job for them.",
+    "Writing code is like learning a language: the more you speak, the more fluent you get.",
+    "Your git commits are like a diary. Write them well.",
+]}
 
-FIKRALAR = [
+FIKRALAR = {"tr": [
     ("Programcı neden gözlük takar?", "Çünkü C# göremiyor! 👓"),
     ("Bir SQL sorgusu bara girer, iki masaya yaklaşır ve sorar:", "'JOIN'leyebilir miyim?' 🍻"),
     ("Programcının en sevdiği yer neresi?", "Foo Bar. 🍺"),
@@ -1721,9 +1949,27 @@ FIKRALAR = [
      "'Tamam, o zaman senin bilgisayarını müşteriye gönderiyoruz.' 📦"),
     ("0 ile 1 kavga etmiş, kim kazanmış?", "Hiçbiri, sonuç boolean çıkmış. ⚖️"),
     ("Recursion'ı anlamak için ne yapmalısın?", "Önce recursion'ı anlamalısın. 🔁"),
-]
+], "en": [
+    ("Why do programmers wear glasses?", "Because they can't C#! 👓"),
+    ("An SQL query walks into a bar, goes up to two tables and asks:", "'Can I JOIN you?' 🍻"),
+    ("Where do programmers like to hang out?", "The Foo Bar. 🍺"),
+    ("Why do programmers prefer dark mode?", "Because light attracts bugs! 🐛"),
+    ("A programmer's mom says: 'Go to the store and buy a loaf of bread. If they have eggs, get 6.'",
+     "The programmer comes back with 6 loaves: 'They had eggs.' 🥚"),
+    ("Why does the panda's computer never break down?", "Because it loads everything with BAMBOOtstrap. 🎋"),
+    ("How many programmers does it take to change a light bulb?", "None, that's a hardware problem. 💡"),
+    ("Why did the programmer quit their job?", "Because they didn't get arrays. 💸"),
+    ("Why did the Java developer go to therapy?", "Too many 'class' issues."),
+    ("One byte asks another: 'Are you feeling okay?'", "'Not really, I'm a bit off today.' 🤒"),
+    ("Why aren't Python programmers afraid of snakes?", "Because they're too busy laughing at Monty Python."),
+    ("What is a programmer's prayer?", "'Please, please let it work in production.' 🙏"),
+    ("A programmer says: 'But it worked on my machine!'",
+     "'Great, then we'll ship your machine to the customer.' 📦"),
+    ("0 and 1 got into a fight. Who won?", "Neither. The result was a boolean. ⚖️"),
+    ("What do you need to do to understand recursion?", "First, you need to understand recursion. 🔁"),
+]}
 
-BILGILER = [
+BILGILER = {"tr": [
     "İlk bilgisayar 'bug'ı 1947'de Harvard Mark II bilgisayarının içinde bulunan gerçek bir güveydi. 🦋",
     "Python adını yılandan değil, İngiliz komedi grubu Monty Python'dan alır.",
     "Tarihteki ilk programcı Ada Lovelace kabul edilir; 1840'larda ilk algoritmayı yazdı. 👩‍💻",
@@ -1744,9 +1990,30 @@ BILGILER = [
     "'Hello, World!' geleneğini 1970'lerde Brian Kernighan yaygınlaştırdı. 👋",
     "QR kod 1994'te Japonya'da, araba parçalarını takip etmek için icat edildi. 📱",
     "İlk emoji seti 1999'da Japonya'da 176 küçük resimle yapıldı. 😀",
-]
+], "en": [
+    "The first computer 'bug' was a real moth found inside the Harvard Mark II computer in 1947. 🦋",
+    "Python is named after the British comedy group Monty Python, not the snake.",
+    "Ada Lovelace is considered the first programmer; she wrote the first algorithm in the 1840s. 👩‍💻",
+    "The first version of JavaScript was written in just 10 days in 1995. ⚡",
+    "The world's first website is still online: info.cern.ch 🌐",
+    "Linus Torvalds started Linux in 1991 as a hobby, when he was 21. 🐧",
+    "Linus Torvalds wrote Git too (2005). The first version was ready in about two weeks. 🔀",
+    "The computer that flew Apollo 11 to the Moon had about 4 KB of memory. Your phone is millions of times more powerful. 🚀",
+    "The first computer mouse was made of wood by Douglas Engelbart in the 1960s. 🖱",
+    "1 byte = 8 bits. 1 kilobyte = 1024 bytes. 🔢",
+    "CAPTCHA stands for 'Completely Automated Public Turing test to tell Computers and Humans Apart'. 🤖",
+    "The Year 2038 problem: 32-bit Unix time overflows on 19 January 2038. Check the current value with 'unix'! ⏰",
+    "Pandas spend 10-16 hours a day eating and can get through 12-38 kg of bamboo daily. 🎋",
+    "Pandas have a 'false thumb' on their wrist that helps them hold bamboo. 🐼",
+    "A newborn panda cub weighs about 100 grams, roughly 1/900 of its mother! 🍼",
+    "The first domain name ever registered was symbolics.com (1985). 🏷",
+    "Type 'import this' in Python and it prints its philosophy, the Zen of Python. 🧘",
+    "Brian Kernighan made the 'Hello, World!' tradition popular in the 1970s. 👋",
+    "The QR code was invented in Japan in 1994 to keep track of car parts. 📱",
+    "The first emoji set was made in Japan in 1999 with 176 tiny pictures. 😀",
+]}
 
-FALLAR = [
+FALLAR = {"tr": [
     "Yakında çok zor bir bug'ı tek satırla çözeceksin. 🔮",
     "Kodun ilk denemede çalışacak... ve bu seni korkutacak. 😱",
     "Bir sonraki projen seni çok ileri götürecek. Başla artık! 🚀",
@@ -1760,23 +2027,42 @@ FALLAR = [
     "Bambu yolun açık, panda gibi sakin ol. 🐼",
     "Yakında Stack Overflow'da bir sorunun cevabını SEN yazacaksın. 🏆",
     "Gelecekte adın bir programın 'Hakkında' sayfasında yazacak. ✨",
-]
+], "en": [
+    "Soon you'll fix a really nasty bug with a single line. 🔮",
+    "Your code will work on the first try... and that will scare you. 😱",
+    "Your next project will take you far. Start it already! 🚀",
+    "In the coming days, a semicolon will save your life. ;",
+    "Something small you learn today will pay off big years from now. 🌱",
+    "Soon you'll teach a friend to code and learn even more yourself. 🤝",
+    "Your lucky number is 42. Why? It's the answer to the universe. 🌌",
+    "I see a snake in your coffee cup... keep learning Python!",
+    "A 'Merge successful' message is in your future. ✅",
+    "I see no drinks spilling on your keyboard this week. Relax. ☕",
+    "Your bamboo path is clear; stay calm like a panda. 🐼",
+    "Soon YOU will write the answer to a question on Stack Overflow. 🏆",
+    "One day your name will appear on a program's 'About' page. ✨",
+]}
 
-SEKIZ_TOP = ["Kesinlikle evet! ✅", "Hiç şüphe yok.", "Büyük ihtimalle.", "Bambular öyle diyor. 🎋",
-             "Belirtiler evet diyor.", "Şimdi söyleyemem, tekrar sor.", "Sonra tekrar sor, panda uyuyor. 😴",
-             "Buna odaklanıp tekrar sor.", "Pek sanmıyorum.", "Kaynaklarım hayır diyor.", "Hiç sanmam. ❌",
-             "Kod derlenmedi, cevap belirsiz. 🤷"]
+SEKIZ_TOP = {"tr": ["Kesinlikle evet! ✅", "Hiç şüphe yok.", "Büyük ihtimalle.", "Bambular öyle diyor. 🎋",
+                    "Belirtiler evet diyor.", "Şimdi söyleyemem, tekrar sor.", "Sonra tekrar sor, panda uyuyor. 😴",
+                    "Buna odaklanıp tekrar sor.", "Pek sanmıyorum.", "Kaynaklarım hayır diyor.", "Hiç sanmam. ❌",
+                    "Kod derlenmedi, cevap belirsiz. 🤷"],
+             "en": ["Definitely yes! ✅", "Without a doubt.", "Most likely.", "The bamboo says yes. 🎋",
+                    "Signs point to yes.", "Can't tell you now, ask again.", "Ask again later, the panda is napping. 😴",
+                    "Concentrate and ask again.", "I don't think so.", "My sources say no.", "Very doubtful. ❌",
+                    "The code didn't compile, the answer is unclear. 🤷"]}
 
 
-@komut("panda", "Eğlence", "Kodlardan yapılmış pandayı tekrar çizer", takma=("logo",))
+@komut("panda", "panda logo", "Eğlence", "Kodlardan yapılmış pandayı tekrar çizer", "Draws the panda made of code again")
 def k_panda(arg):
     panda_ciz()
-    yaz(f"  Şef Panda seni izliyor... 👀", T.ANA)
+    yaz(tr_en("  Şef Panda seni izliyor... 👀", "  Chief Panda is watching you... 👀"), T.ANA)
 
 
-@komut("pandade", "Eğlence", "Panda senin yerine konuşur (cowsay gibi)", "pandade <metin>", ("pandasay",))
+@komut("pandade", "pandasay", "Eğlence", "Panda senin yerine konuşur (cowsay gibi)", "The panda says what you type (like cowsay)",
+       "<metin>", "<text>")
 def k_pandade(arg):
-    metin = arg or random.choice(SOZLER)
+    metin = arg or random.choice(SOZLER[dil()])
     satirlar = textwrap.wrap(metin, 40) or [""]
     en = max(len(s) for s in satirlar)
     print(f"   {BEYAZ} {'_' * (en + 2)}")
@@ -1791,46 +2077,48 @@ def k_pandade(arg):
         print("        " + T.ANA + satir + RESET)
 
 
-@komut("soz", "Eğlence", "Rastgele motivasyon / kodlama sözü", takma=("quote", "motivasyon"))
+@komut("soz motivasyon", "quote", "Eğlence", "Rastgele motivasyon / kodlama sözü", "A random motivational / coding quote")
 def k_soz(arg):
-    yaz(f"  💬 \"{random.choice(SOZLER)}\"", BEYAZ, 0.02)
+    yaz(f"  💬 \"{random.choice(SOZLER[dil()])}\"", BEYAZ, 0.02)
 
 
-@komut("fikra", "Eğlence", "Programcı fıkrası anlatır", takma=("saka", "joke"))
+@komut("fikra saka", "joke", "Eğlence", "Programcı fıkrası anlatır", "Tells a programmer joke")
 def k_fikra(arg):
-    soru, cevap = random.choice(FIKRALAR)
+    soru, cevap = random.choice(FIKRALAR[dil()])
     yaz(f"  {soru}", BEYAZ, 0.02)
     time.sleep(1.2)
     yaz(f"  {cevap}", SARI, 0.03)
 
 
-@komut("bilgi", "Eğlence", "Rastgele bilim / teknoloji / panda bilgisi", takma=("fact", "biliyormuydun"))
+@komut("bilgi biliyormuydun", "fact", "Eğlence", "Rastgele bilim / teknoloji / panda bilgisi",
+       "A random science / tech / panda fact")
 def k_bilgi(arg):
-    yaz(f"  💡 Biliyor muydun? {random.choice(BILGILER)}", BEYAZ, 0.015)
+    yaz(tr_en("  💡 Biliyor muydun? ", "  💡 Did you know? ") + random.choice(BILGILER[dil()]), BEYAZ, 0.015)
 
 
-@komut("fal", "Eğlence", "Kod falına bakar", takma=("fortune",))
+@komut("fal", "fortune", "Eğlence", "Kod falına bakar", "Reads your coding fortune from a coffee cup")
 def k_fal(arg):
-    for nokta in ("Fincan çevriliyor", ".", ".", "."):
+    for nokta in (tr_en("Fincan çevriliyor", "Turning the coffee cup"), ".", ".", "."):
         sys.stdout.write(f"{GRI}{'  ' if nokta != '.' else ''}{nokta}{RESET}")
         sys.stdout.flush()
         time.sleep(0.4)
     print()
-    yaz(f"  🔮 {random.choice(FALLAR)}", MOR, 0.025)
+    yaz(f"  🔮 {random.choice(FALLAR[dil()])}", MOR, 0.025)
 
 
-@komut("8top", "Eğlence", "Sihirli 8 topuna evet/hayır sorusu sor", "8top <soru>", ("sihirlitop",))
+@komut("8top sihirlitop", "8ball", "Eğlence", "Sihirli 8 topuna evet/hayır sorusu sor",
+       "Ask the magic 8-ball a yes/no question", "<soru>", "<question>")
 def k_8top(arg):
     if not arg:
         kullanim("8top")
         return
-    sys.stdout.write(f"  {GRI}🎱 Top sallanıyor")
+    sys.stdout.write(f"  {GRI}{tr_en('🎱 Top sallanıyor', '🎱 Shaking the ball')}")
     for _ in range(3):
         sys.stdout.write(".")
         sys.stdout.flush()
         time.sleep(0.4)
     print(RESET)
-    yaz(f"  🎱 {random.choice(SEKIZ_TOP)}", BEYAZ, 0.03)
+    yaz(f"  🎱 {random.choice(SEKIZ_TOP[dil()])}", BEYAZ, 0.03)
 
 
 ZAR_YUZLERI = {1: ["       ", "   ●   ", "       "], 2: [" ●     ", "       ", "     ● "],
@@ -1846,7 +2134,7 @@ def zar_satirlari(degerler):
     return [BEYAZ + s + RESET for s in satirlar]
 
 
-@komut("zar", "Eğlence", "Zar atar (1-6 tane)", "zar [adet]", ("dice",))
+@komut("zar", "dice", "Eğlence", "Zar atar (1-6 tane)", "Rolls dice (1 to 6 of them)", "[adet]", "[count]")
 def k_zar(arg):
     try:
         adet = min(max(int(arg or 1), 1), 6)
@@ -1860,14 +2148,15 @@ def k_zar(arg):
     soyle(f"🎲 {' + '.join(map(str, degerler))}" + (f" = {BEYAZ}{KALIN}{sum(degerler)}" if adet > 1 else ""))
 
 
-@komut("yazitura", "Eğlence", "Yazı tura atar", takma=("coin",))
+@komut("yazitura", "coin", "Eğlence", "Yazı tura atar", "Flips a coin")
 def k_yazitura(arg):
     donen = "|/-\\"
+    yuzler = tr_en(("YAZI", "TURA"), ("HEADS", "TAILS"))
     for i in range(14):
-        sys.stdout.write(f"\r  {SARI}{donen[i % 4]} {('YAZI', 'TURA')[i % 2]}{RESET}  ")
+        sys.stdout.write(f"\r  {SARI}{donen[i % 4]} {yuzler[i % 2]}{RESET}  ")
         sys.stdout.flush()
         time.sleep(0.04 + i * 0.015)
-    sys.stdout.write(f"\r  🪙 {BEYAZ}{KALIN}{random.choice(['YAZI', 'TURA'])}!{RESET}\033[K\n")
+    sys.stdout.write(f"\r  🪙 {BEYAZ}{KALIN}{random.choice(yuzler)}!{RESET}\033[K\n")
 
 
 def gokkusagi_metin(metin, kaydir=0):
@@ -1881,9 +2170,10 @@ def gokkusagi_metin(metin, kaydir=0):
     return renkli + RESET
 
 
-@komut("gokkusagi", "Eğlence", "Metni gökkuşağı renklerine boyar", "gokkusagi <metin>", ("rainbow",))
+@komut("gokkusagi", "rainbow", "Eğlence", "Metni gökkuşağı renklerine boyar", "Paints text in rainbow colors",
+       "<metin>", "<text>")
 def k_gokkusagi(arg):
-    metin = arg or "PandaCode gökkuşağı modu!"
+    metin = arg or tr_en("PandaCode gökkuşağı modu!", "PandaCode rainbow mode!")
     if not terminal_mi():
         print("  " + gokkusagi_metin(metin))
         return
@@ -1894,9 +2184,10 @@ def k_gokkusagi(arg):
     print()
 
 
-@komut("glitch", "Eğlence", "Metni bozuk-sinyal efektiyle yazar", "glitch <metin>")
+@komut("glitch", "glitch", "Eğlence", "Metni bozuk-sinyal efektiyle yazar", "Writes text with a broken-signal effect",
+       "<metin>", "<text>")
 def k_glitch(arg):
-    metin = arg or "SİSTEME HOŞ GELDİN"
+    metin = arg or tr_en("SİSTEME HOŞ GELDİN", "WELCOME TO THE SYSTEM")
     semboller = "!@#$%^&*<>?/\\|█▓▒░"
     for adim in range(16):
         oran = 1 - adim / 15
@@ -1908,16 +2199,18 @@ def k_glitch(arg):
     sys.stdout.write(f"\r  {T.ANA}{KALIN}{metin}{RESET}\033[K\n")
 
 
-@komut("daktilo", "Eğlence", "Metni eski daktilo gibi tık tık yazar", "daktilo <metin>", ("typewriter",))
+@komut("daktilo", "typewriter", "Eğlence", "Metni eski daktilo gibi tık tık yazar",
+       "Types text out click-clack, like an old typewriter", "<metin>", "<text>")
 def k_daktilo(arg):
-    for harf in "  " + (arg or "Merhaba dünya, ben PandaCode."):
+    for harf in "  " + (arg or tr_en("Merhaba dünya, ben PandaCode.", "Hello world, I'm PandaCode.")):
         sys.stdout.write(BEYAZ + harf)
         sys.stdout.flush()
         time.sleep(random.uniform(0.03, 0.12))
     print(RESET)
 
 
-@komut("banner", "Eğlence", "Yazdığını DEV harflerle çizer", "banner <metin>", ("afis", "buyukyaz"))
+@komut("banner afis buyukyaz", "banner", "Eğlence", "Yazdığını DEV harflerle çizer", "Draws your text in GIANT letters",
+       "<metin>", "<text>")
 def k_banner(arg):
     metin = arg or "PANDA"
     sinir = genislik() - 4
@@ -1935,28 +2228,32 @@ def k_banner(arg):
         print("  " + kes(s, sinir))
 
 
-@komut("hack", "Eğlence", "PandaHack'ten kalma nostalji: tamamen sahte, zararsız bir 'hack' şovu",
-       takma=("nostalji",))
+@komut("hack nostalji", "hack", "Eğlence", "PandaHack'ten kalma nostalji: tamamen sahte, zararsız bir 'hack' şovu",
+       "Nostalgia from PandaHack: a totally fake, harmless 'hacking' show")
 def k_hack(arg):
-    hedefler = ["Mahalle bakkalının veresiye defteri", "Komşunun Wi-Fi şifresi",
-                "Okulun karne sistemi", "Kebapçının gizli acı sos tarifi", "Pandanın bambu deposu"]
+    hedefler = tr_en(["Mahalle bakkalının veresiye defteri", "Komşunun Wi-Fi şifresi",
+                      "Okulun karne sistemi", "Kebapçının gizli acı sos tarifi", "Pandanın bambu deposu"],
+                     ["The corner shop's IOU notebook", "The neighbor's Wi-Fi password",
+                      "The school's report card system", "The kebab shop's secret hot sauce recipe",
+                      "The panda's bamboo stash"])
     ip = ".".join(str(random.randint(1, 255)) for _ in range(4))
-    yaz(f"  Hedef kilitlendi: {random.choice(hedefler)}", SARI)
-    yaz(f"  IP adresi: {ip}", T.KOYU, 0.01)
+    yaz(tr_en("  Hedef kilitlendi: ", "  Target locked: ") + random.choice(hedefler), SARI)
+    yaz(tr_en(f"  IP adresi: {ip}", f"  IP address: {ip}"), T.KOYU, 0.01)
     for _ in range(8):
         print(T.KOYU + "  " + " ".join(secrets.token_hex(2).upper() for _ in range(12)) + RESET)
         time.sleep(0.08)
-    yukleme_cubugu("Şifre kırılıyor")
+    yukleme_cubugu(tr_en("Şifre kırılıyor", "Cracking the password"))
     if random.random() < 0.7:
-        yaz("  [✓] SIZMA BAŞARILI! (şaka şaka, hiçbir şey yapmadık 😄)", T.ANA)
+        yaz(tr_en("  [✓] SIZMA BAŞARILI! (şaka şaka, hiçbir şey yapmadık 😄)",
+                  "  [✓] ACCESS GRANTED! (just kidding, we didn't touch anything 😄)"), T.ANA)
     else:
-        yaz("  [!] YAKALANDIK! Panda kaçıyor... 🐼💨", KIRMIZI)
+        yaz(tr_en("  [!] YAKALANDIK! Panda kaçıyor... 🐼💨", "  [!] BUSTED! The panda is running away... 🐼💨"), KIRMIZI)
 
 
 # ═══════════════════════════ KOMUTLAR: GÖRSEL ŞOV ═══════════════════════════
 def ekran_gerekli():
     if not terminal_mi():
-        hata("Bu komut gerçek bir terminal penceresinde çalışır.")
+        hata(tr_en("Bu komut gerçek bir terminal penceresinde çalışır.", "This command needs a real terminal window."))
         return False
     return True
 
@@ -2002,7 +2299,8 @@ def matrix_yagmuru(sure=None):
                 break
 
 
-@komut("matrix", "Görsel Şov", "Ekrana Matrix kodu yağdırır (çıkmak için bir tuşa bas)", "matrix [saniye]")
+@komut("matrix", "matrix", "Görsel Şov", "Ekrana Matrix kodu yağdırır (çıkmak için bir tuşa bas)",
+       "Makes Matrix code rain down the screen (press any key to exit)", "[saniye]", "[seconds]")
 def k_matrix(arg):
     try:
         sure = float(arg) if arg else None
@@ -2012,7 +2310,7 @@ def k_matrix(arg):
         matrix_yagmuru(sure)
 
 
-@komut("kar", "Görsel Şov", "Ekrana kar yağdırır, yerde birikir", takma=("snow",))
+@komut("kar", "snow", "Görsel Şov", "Ekrana kar yağdırır, yerde birikir", "Lets it snow; the snow piles up on the ground")
 def k_kar(arg):
     if not ekran_gerekli():
         return
@@ -2021,7 +2319,7 @@ def k_kar(arg):
     taneler = []
     onceki = set()
     with Sahne(tam_ekran=True):
-        sys.stdout.write(git(1, 2) + GRI + "❄ çıkmak için bir tuşa bas" + RESET)
+        sys.stdout.write(git(1, 2) + GRI + "❄ " + cikis_ipucu() + RESET)
         while True:
             for _ in range(2):
                 taneler.append([random.randint(1, en - 1), 2.0, random.uniform(0.15, 0.5), random.choice("*·•+")])
@@ -2046,7 +2344,7 @@ def k_kar(arg):
                 break
 
 
-@komut("dna", "Görsel Şov", "Dönen bir DNA sarmalı çizer", takma=("helix",))
+@komut("dna", "dna helix", "Görsel Şov", "Dönen bir DNA sarmalı çizer", "Draws a spinning DNA helix")
 def k_dna(arg):
     if not ekran_gerekli():
         return
@@ -2054,7 +2352,7 @@ def k_dna(arg):
     renkler = {"A": KIRMIZI, "T": SARI, "G": CAMGOBEGI, "C": MOR}
     t = 0.0
     with Sahne():
-        soyle("🧬 çıkmak için bir tuşa bas", GRI)
+        soyle("🧬 " + cikis_ipucu(), GRI)
         while True:
             x1 = int(orta + genlik * math.sin(t))
             x2 = int(orta - genlik * math.sin(t))
@@ -2072,7 +2370,7 @@ def k_dna(arg):
                 break
 
 
-@komut("dalga", "Görsel Şov", "Ekranda renkli sinüs dalgaları dans eder", takma=("wave",))
+@komut("dalga", "wave", "Görsel Şov", "Ekranda renkli sinüs dalgaları dans eder", "Colorful sine waves dance across the screen")
 def k_dalga(arg):
     if not ekran_gerekli():
         return
@@ -2090,7 +2388,7 @@ def k_dalga(arg):
                         cizim[(y, x)] = renk
             sys.stdout.write("".join(git(y, x) + " " for (y, x) in onceki - set(cizim)))
             sys.stdout.write("".join(f"{git(y, x)}{r}•" for (y, x), r in cizim.items()) + RESET)
-            sys.stdout.write(git(boy, 2) + GRI + "çıkmak için bir tuşa bas" + RESET)
+            sys.stdout.write(git(boy, 2) + GRI + cikis_ipucu() + RESET)
             sys.stdout.flush()
             onceki = set(cizim)
             t += 0.15
@@ -2098,7 +2396,7 @@ def k_dalga(arg):
                 break
 
 
-@komut("havaifisek", "Görsel Şov", "Havai fişek gösterisi", takma=("fireworks", "fisek"))
+@komut("havaifisek fisek", "fireworks", "Görsel Şov", "Havai fişek gösterisi", "A fireworks show")
 def k_havaifisek(arg):
     if not ekran_gerekli():
         return
@@ -2139,7 +2437,7 @@ def k_havaifisek(arg):
                 break
 
 
-@komut("dijital", "Görsel Şov", "Dev rakamlı canlı dijital saat", takma=("buyuksaat", "clock"))
+@komut("dijital buyuksaat", "clock", "Görsel Şov", "Dev rakamlı canlı dijital saat", "A live digital clock with giant digits")
 def k_dijital(arg):
     ilk = True
     with Sahne():
@@ -2148,14 +2446,15 @@ def k_dijital(arg):
             ayirici = ":" if simdi.tm_sec % 2 == 0 else " "
             metin = time.strftime(f"%H{ayirici}%M{ayirici}%S", simdi)
             yerinde_yaz(["  " + T.ANA + KALIN + s for s in buyuk_yazi(metin)]
-                        + [f"  {GRI}{GUNLER[datetime.date.today().weekday()]}, {time.strftime('%d.%m.%Y')}"
-                           f"  —  çıkmak için bir tuşa bas{RESET}"], ilk)
+                        + [f"  {GRI}{gun_adi(datetime.date.today())}, {time.strftime('%d.%m.%Y')}"
+                           f"  —  {cikis_ipucu()}{RESET}"], ilk)
             ilk = False
             if not terminal_mi() or tus_bekle(0.25):
                 break
 
 
-@komut("hayat", "Görsel Şov", "Conway'in Hayat Oyunu: hücreler doğar, yaşar, ölür", takma=("life",))
+@komut("hayat", "life", "Görsel Şov", "Conway'in Hayat Oyunu: hücreler doğar, yaşar, ölür",
+       "Conway's Game of Life: cells are born, live and die")
 def k_hayat(arg):
     if not ekran_gerekli():
         return
@@ -2166,8 +2465,9 @@ def k_hayat(arg):
         while True:
             cizim = "\n".join("".join("█" if h else " " for h in satir) for satir in dunya)
             canli = sum(map(sum, dunya))
-            sys.stdout.write(git(1, 1) + T.ANA + cizim + RESET + git(boy + 1, 1) +
-                             f"{GRI}Nesil: {nesil}  Canlı hücre: {canli}   [r] yeniden başlat  [q] çık{RESET}\033[K")
+            sys.stdout.write(git(1, 1) + T.ANA + cizim + RESET + git(boy + 1, 1) + GRI +
+                             tr_en(f"Nesil: {nesil}  Canlı hücre: {canli}   [r] yeniden başlat  [q] çık",
+                                   f"Generation: {nesil}  Live cells: {canli}   [r] restart  [q] quit") + f"{RESET}\033[K")
             sys.stdout.flush()
             yeni = []
             for y in range(boy):
@@ -2186,19 +2486,20 @@ def k_hayat(arg):
                 break
 
 
-@komut("labirent", "Görsel Şov", "Rastgele labirent üretir ve kendi kendine çözer", takma=("maze",))
+@komut("labirent", "maze", "Görsel Şov", "Rastgele labirent üretir ve kendi kendine çözer",
+       "Generates a random maze and solves it by itself")
 def k_labirent(arg):
     if not ekran_gerekli():
         return
     en = min(genislik() - 2, 99) // 2 * 2 - 1
     boy = (yukseklik() - 3) // 2 * 2 - 1
     if en < 11 or boy < 7:
-        hata("Pencere çok küçük, biraz büyüt.")
+        hata(tr_en("Pencere çok küçük, biraz büyüt.", "The window is too small, make it a bit bigger."))
         return
     izgara = [["█"] * en for _ in range(boy)]
     ciz = lambda x, y, metin: sys.stdout.write(git(y + 2, x + 2) + metin)
     with Sahne(tam_ekran=True):
-        sys.stdout.write(git(1, 2) + f"{T.ANA}{KALIN}🧩 Labirent kazılıyor...{RESET}")
+        sys.stdout.write(git(1, 2) + f"{T.ANA}{KALIN}🧩 {tr_en('Labirent kazılıyor...', 'Digging the maze...')}{RESET}")
         for y in range(boy):
             ciz(0, y, T.KOYU + "".join(izgara[y]))
         yigin, animasyon, adim = [(1, 1)], True, 0
@@ -2235,20 +2536,23 @@ def k_labirent(arg):
         while nokta:
             yol.append(nokta)
             nokta = onceki[nokta]
-        sys.stdout.write(git(1, 2) + f"{T.ANA}{KALIN}🧩 Panda çıkışı arıyor...\033[K{RESET}")
+        sys.stdout.write(git(1, 2) + f"{T.ANA}{KALIN}🧩 {tr_en('Panda çıkışı arıyor...', 'The panda is looking for the exit...')}"
+                                     f"\033[K{RESET}")
         for x, y in reversed(yol):
             ciz(x, y, SARI + KALIN + "•")
             sys.stdout.flush()
             time.sleep(0.01)
         ciz(*baslangic, T.ANA + KALIN + "@")
         ciz(*hedef, KIRMIZI + KALIN + "X")
-        sys.stdout.write(git(1, 2) + f"{T.ANA}{KALIN}🧩 Çözüldü! Yol uzunluğu: {len(yol)} adım. "
-                                     f"{GRI}(bir tuşa bas){RESET}\033[K")
+        sys.stdout.write(git(1, 2) + f"{T.ANA}{KALIN}🧩 "
+                         + tr_en(f"Çözüldü! Yol uzunluğu: {len(yol)} adım. ", f"Solved! Path length: {len(yol)} steps. ")
+                         + f"{GRI}{tr_en('(bir tuşa bas)', '(press any key)')}{RESET}\033[K")
         sys.stdout.flush()
         tus_oku()
 
 
-@komut("mandelbrot", "Görsel Şov", "Ünlü Mandelbrot fraktalını renkli çizer", takma=("fraktal",))
+@komut("mandelbrot fraktal", "mandelbrot fractal", "Görsel Şov", "Ünlü Mandelbrot fraktalını renkli çizer",
+       "Draws the famous Mandelbrot fractal in color")
 def k_mandelbrot(arg):
     en = min(genislik() - 2, 140)
     adim_x = 3.3 / en
@@ -2273,15 +2577,16 @@ def k_mandelbrot(arg):
         print("  " + cikti + RESET)
 
 
-@komut("renkler", "Görsel Şov", "Terminalinin gösterebildiği renk paletini sergiler", takma=("palet",))
+@komut("renkler palet", "colors palette", "Görsel Şov", "Terminalinin gösterebildiği renk paletini sergiler",
+       "Shows off the colors your terminal can display")
 def k_renkler(arg):
-    soyle("16 temel renk:", GRI)
+    soyle(tr_en("16 temel renk:", "16 basic colors:"), GRI)
     print("  " + "".join(f"\033[48;5;{i}m   " for i in range(16)) + RESET)
-    soyle("256 renk paleti:", GRI)
+    soyle(tr_en("256 renk paleti:", "256-color palette:"), GRI)
     for satir in range(6):
         print("  " + "".join(f"\033[48;5;{16 + satir * 36 + i}m  " for i in range(36)) + RESET)
     print("  " + "".join(f"\033[48;5;{i}m  " for i in range(232, 256)) + RESET)
-    soyle("Gerçek renk (true color) geçişi:", GRI)
+    soyle(tr_en("Gerçek renk (true color) geçişi:", "True color gradient:"), GRI)
     en = min(72, genislik() - 4)
     gecis = ""
     for i in range(en):
@@ -2290,12 +2595,15 @@ def k_renkler(arg):
     print("  " + gecis + RESET)
 
 
-@komut("yukleniyor", "Görsel Şov", "Bir sürü havalı yükleme animasyonu", takma=("spinner", "loading"))
+@komut("yukleniyor", "loading spinner", "Görsel Şov", "Bir sürü havalı yükleme animasyonu", "A bunch of cool loading animations")
 def k_yukleniyor(arg):
-    donguler = [("Bambu toplanıyor", "|/-\\"), ("Panda düşünüyor", "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"),
-                ("Kod derleniyor", "▁▂▃▄▅▆▇█▇▆▅▄▃▂"), ("Dünya dönüyor", "◐◓◑◒"),
-                ("Veri aktarılıyor", ["[=    ]", "[ =   ]", "[  =  ]", "[   = ]", "[    =]", "[   = ]", "[  =  ]", "[ =   ]"]),
-                ("Sinyal aranıyor", ["▂   ", "▂▄  ", "▂▄▆ ", "▂▄▆█", "    "])]
+    donguler = [(tr_en("Bambu toplanıyor", "Gathering bamboo"), "|/-\\"),
+                (tr_en("Panda düşünüyor", "The panda is thinking"), "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"),
+                (tr_en("Kod derleniyor", "Compiling code"), "▁▂▃▄▅▆▇█▇▆▅▄▃▂"),
+                (tr_en("Dünya dönüyor", "Spinning the globe"), "◐◓◑◒"),
+                (tr_en("Veri aktarılıyor", "Transferring data"),
+                 ["[=    ]", "[ =   ]", "[  =  ]", "[   = ]", "[    =]", "[   = ]", "[  =  ]", "[ =   ]"]),
+                (tr_en("Sinyal aranıyor", "Searching for a signal"), ["▂   ", "▂▄  ", "▂▄▆ ", "▂▄▆█", "    "])]
     with Sahne():
         for etiket, kareler in donguler:
             for i in range(24):
@@ -2304,8 +2612,8 @@ def k_yukleniyor(arg):
                 if tus_bekle(0.07):
                     print()
                     return
-            sys.stdout.write(f"\r  {YESIL}✓{RESET} {etiket} {GRI}tamam{RESET}\033[K\n")
-    yukleme_cubugu("Her şey hazır")
+            sys.stdout.write(f"\r  {YESIL}✓{RESET} {etiket} {GRI}{tr_en('tamam', 'done')}{RESET}\033[K\n")
+    yukleme_cubugu(tr_en("Her şey hazır", "All set"))
 
 
 DANS_KARELERI = [
@@ -2317,7 +2625,7 @@ DANS_KARELERI = [
 ]
 
 
-@komut("dans", "Görsel Şov", "Panda dans eder", takma=("dance",))
+@komut("dans", "dance", "Görsel Şov", "Panda dans eder", "The panda dances")
 def k_dans(arg):
     ilk, i = True, 0
     notalar = ["♪", "♫", "♬", " "]
@@ -2328,43 +2636,50 @@ def k_dans(arg):
             yerinde_yaz([f"  {nota()}  {T.ANA}{KALIN}{kare[0]}{RESET}  {nota()}",
                          f"     {BEYAZ}{kare[1]}{RESET}",
                          f"     {BEYAZ}{kare[2]}{RESET}",
-                         f"  {GRI}çıkmak için bir tuşa bas{RESET}"], ilk)
+                         f"  {GRI}{cikis_ipucu()}{RESET}"], ilk)
             ilk, i = False, i + 1
             if not terminal_mi() or tus_bekle(0.3):
                 break
 
 
 # ═══════════════════════════ KOMUTLAR: OYUNLAR ═══════════════════════════
-@komut("tahmin", "Oyunlar", "1-100 arası sayıyı tahmin et", takma=("guess",))
+@komut("tahmin", "guess", "Oyunlar", "1-100 arası sayıyı tahmin et", "Guess the number between 1 and 100")
 def k_tahmin(arg):
     hedef, deneme = random.randint(1, 100), 0
-    soyle("🎯 1 ile 100 arasında bir sayı tuttum. Bil bakalım! (çıkmak için q)")
+    soyle(tr_en("🎯 1 ile 100 arasında bir sayı tuttum. Bil bakalım! (çıkmak için q)",
+                "🎯 I'm thinking of a number between 1 and 100. Can you guess it? (q to quit)"))
     while True:
-        cevap = sor("Tahminin: ")
-        if sadelestir(cevap) in ("q", "cikis"):
-            soyle(f"Pes mi ediyorsun? Sayı {hedef} idi. 🐼", GRI)
+        cevap = sor(tr_en("Tahminin: ", "Your guess: "))
+        if sadelestir(cevap) in ("q", "cikis", "exit", "quit"):
+            soyle(tr_en(f"Pes mi ediyorsun? Sayı {hedef} idi. 🐼", f"Giving up? The number was {hedef}. 🐼"), GRI)
             return
         try:
             tahmin = int(cevap)
         except ValueError:
-            hata("Sayı yazmalısın.")
+            hata(tr_en("Sayı yazmalısın.", "You need to type a number."))
             continue
         deneme += 1
         fark = abs(tahmin - hedef)
         if fark == 0:
-            soyle(f"🎉 BİLDİN! {deneme} denemede buldun.", YESIL + KALIN)
+            soyle(tr_en(f"🎉 BİLDİN! {deneme} denemede buldun.",
+                        f"🎉 YOU GOT IT! Found it in {deneme} {'try' if deneme == 1 else 'tries'}."), YESIL + KALIN)
             if rekor_kontrol("tahmin", deneme, buyuk_iyi=False):
-                soyle("🏆 YENİ REKOR!", SARI)
+                soyle(tr_en("🏆 YENİ REKOR!", "🏆 NEW RECORD!"), SARI)
             return
-        yon = "⬆ Daha BÜYÜK" if tahmin < hedef else "⬇ Daha KÜÇÜK"
-        isi = "🔥 çok sıcak!" if fark <= 3 else "♨ sıcak" if fark <= 10 else "❄ soğuk"
+        yon = tr_en("⬆ Daha BÜYÜK", "⬆ HIGHER") if tahmin < hedef else tr_en("⬇ Daha KÜÇÜK", "⬇ LOWER")
+        isi = (tr_en("🔥 çok sıcak!", "🔥 very hot!") if fark <= 3 else
+               tr_en("♨ sıcak", "♨ warm") if fark <= 10 else tr_en("❄ soğuk", "❄ cold"))
         soyle(f"{yon}  {GRI}({isi})")
 
 
-ADAM_KELIMELERI = ["python", "panda", "bambu", "klavye", "terminal", "algoritma", "degisken", "fonksiyon",
-                   "dongu", "derleyici", "sunucu", "piksel", "yazilim", "donanim", "internet", "sifre",
-                   "veritabani", "kutuphane", "modul", "sozluk", "liste", "ekran", "islemci", "bellek",
-                   "robot", "yapayzeka", "kodlama", "bilgisayar", "tarayici", "uygulama"]
+ADAM_KELIMELERI = {"tr": ["python", "panda", "bambu", "klavye", "terminal", "algoritma", "degisken", "fonksiyon",
+                          "dongu", "derleyici", "sunucu", "piksel", "yazilim", "donanim", "internet", "sifre",
+                          "veritabani", "kutuphane", "modul", "sozluk", "liste", "ekran", "islemci", "bellek",
+                          "robot", "yapayzeka", "kodlama", "bilgisayar", "tarayici", "uygulama"],
+                   "en": ["python", "panda", "bamboo", "keyboard", "terminal", "algorithm", "variable", "function",
+                          "loop", "compiler", "server", "pixel", "software", "hardware", "internet", "password",
+                          "database", "library", "module", "dictionary", "list", "screen", "processor", "memory",
+                          "robot", "keyword", "coding", "computer", "browser", "application"]}
 
 
 def adam_ciz(yanlis):
@@ -2376,24 +2691,27 @@ def adam_ciz(yanlis):
             f" ─┴─{RESET}"]
 
 
-@komut("adamasmaca", "Oyunlar", "Kodlama kelimeleriyle adam asmaca", takma=("hangman",))
+@komut("adamasmaca", "hangman", "Oyunlar", "Kodlama kelimeleriyle adam asmaca", "Hangman with coding words")
 def k_adamasmaca(arg):
-    kelime = random.choice(ADAM_KELIMELERI)
+    kelime = random.choice(ADAM_KELIMELERI[dil()])
     bilinen, yanlislar = set(), []
     while True:
         for satir in adam_ciz(len(yanlislar)):
             print(satir)
         gorunen = " ".join(h if h in bilinen else "_" for h in kelime)
-        soyle(f"Kelime: {BEYAZ}{KALIN}{gorunen}{RESET}   {GRI}Yanlışlar: {' '.join(yanlislar) or '-'}")
+        yanlis = " ".join(yanlislar) or "-"
+        soyle(tr_en(f"Kelime: {BEYAZ}{KALIN}{gorunen}{RESET}   {GRI}Yanlışlar: {yanlis}",
+                    f"Word: {BEYAZ}{KALIN}{gorunen}{RESET}   {GRI}Misses: {yanlis}"))
         if all(h in bilinen for h in kelime):
-            soyle(f"🎉 KAZANDIN! Kelime: {kelime}", YESIL + KALIN)
+            soyle(tr_en(f"🎉 KAZANDIN! Kelime: {kelime}", f"🎉 YOU WIN! The word was: {kelime}"), YESIL + KALIN)
             return
         if len(yanlislar) >= 6:
-            soyle(f"💀 Adam asıldı! Kelime: {kelime}", KIRMIZI + KALIN)
+            soyle(tr_en(f"💀 Adam asıldı! Kelime: {kelime}", f"💀 You've been hanged! The word was: {kelime}"), KIRMIZI + KALIN)
             return
-        tahmin = sadelestir(sor("Harf (ya da kelimenin tamamı, çıkmak için 0): "))
+        tahmin = sadelestir(sor(tr_en("Harf (ya da kelimenin tamamı, çıkmak için 0): ",
+                                      "Letter (or the whole word, 0 to quit): ")))
         if tahmin == "0":
-            soyle(f"Kelime '{kelime}' idi.", GRI)
+            soyle(tr_en(f"Kelime '{kelime}' idi.", f"The word was '{kelime}'."), GRI)
             return
         if len(tahmin) > 1:
             if tahmin == kelime:
@@ -2402,7 +2720,7 @@ def k_adamasmaca(arg):
                 yanlislar.append(tahmin)
         elif tahmin and tahmin.isalpha():
             if tahmin in bilinen or tahmin in yanlislar:
-                hata("Bunu zaten denedin.")
+                hata(tr_en("Bunu zaten denedin.", "You already tried that."))
             elif tahmin in kelime:
                 bilinen.add(tahmin)
             else:
@@ -2446,24 +2764,26 @@ def xox_ciz(tahta):
             print("    ───┼───┼───")
 
 
-@komut("xox", "Oyunlar", "Pandaya karşı XOX (tic-tac-toe)", takma=("tictactoe",))
+@komut("xox", "tictactoe", "Oyunlar", "Pandaya karşı XOX (tic-tac-toe)", "Tic-tac-toe against the panda")
 def k_xox(arg):
     tahta = [" "] * 9
-    soyle("❌ Sen X'sin, panda O. Kutu numarasını yaz (1-9), çıkmak için q.")
+    soyle(tr_en("❌ Sen X'sin, panda O. Kutu numarasını yaz (1-9), çıkmak için q.",
+                "❌ You're X, the panda is O. Type a square's number (1-9), q to quit."))
     while True:
         print()
         xox_ciz(tahta)
         kazanan = xox_kazanan(tahta)
         if kazanan:
-            mesaj = {"X": ("🎉 KAZANDIN! Pandayı yendin!", YESIL), "O": ("🐼 Panda kazandı! Bir daha dene.", KIRMIZI),
-                     "berabere": ("🤝 Berabere!", SARI)}[kazanan]
+            mesaj = {"X": (tr_en("🎉 KAZANDIN! Pandayı yendin!", "🎉 YOU WIN! You beat the panda!"), YESIL),
+                     "O": (tr_en("🐼 Panda kazandı! Bir daha dene.", "🐼 The panda wins! Try again."), KIRMIZI),
+                     "berabere": (tr_en("🤝 Berabere!", "🤝 It's a draw!"), SARI)}[kazanan]
             soyle(*mesaj)
             return
-        cevap = sor("Hamlen: ")
+        cevap = sor(tr_en("Hamlen: ", "Your move: "))
         if sadelestir(cevap) == "q":
             return
         if not (cevap.isdigit() and 1 <= int(cevap) <= 9 and tahta[int(cevap) - 1] == " "):
-            hata("Boş bir kutunun numarasını yaz (1-9).")
+            hata(tr_en("Boş bir kutunun numarasını yaz (1-9).", "Type the number of an empty square (1-9)."))
             continue
         tahta[int(cevap) - 1] = "X"
         if xox_kazanan(tahta) or " " not in tahta:
@@ -2473,47 +2793,54 @@ def k_xox(arg):
         else:
             hamle = xox_minimax(tahta, "O")[1]
         tahta[hamle] = "O"
-        soyle(f"🐼 Panda {hamle + 1} numaraya oynadı.", GRI)
+        soyle(tr_en(f"🐼 Panda {hamle + 1} numaraya oynadı.", f"🐼 The panda played square {hamle + 1}."), GRI)
 
 
 TKM_SKOR = {"sen": 0, "panda": 0}
 
 
-@komut("tkm", "Oyunlar", "Taş-kâğıt-makas", "tkm <tas|kagit|makas>", ("taskagitmakas", "rps"))
+@komut("tkm taskagitmakas", "rps", "Oyunlar", "Taş-kâğıt-makas", "Rock-paper-scissors",
+       "<tas|kagit|makas>", "<rock|paper|scissors>")
 def k_tkm(arg):
-    secimler = {"tas": "🪨 Taş", "kagit": "📄 Kâğıt", "makas": "✂️  Makas"}
+    secimler = {"tas": tr_en("🪨 Taş", "🪨 Rock"), "kagit": tr_en("📄 Kâğıt", "📄 Paper"),
+                "makas": tr_en("✂️  Makas", "✂️  Scissors")}
     yener = {"tas": "makas", "kagit": "tas", "makas": "kagit"}
-    senin = sadelestir(arg)
+    ingilizce = {"rock": "tas", "paper": "kagit", "scissors": "makas"}
+    anla = lambda metin: ingilizce.get(sadelestir(metin), sadelestir(metin))  # 'rock' → 'tas'
+    senin = anla(arg)
     if senin not in secimler:
-        senin = sadelestir(sor("Taş, kâğıt, makas? "))
+        senin = anla(sor(tr_en("Taş, kâğıt, makas? ", "Rock, paper, scissors? ")))
         if senin not in secimler:
             kullanim("tkm")
             return
     pandanin = random.choice(list(secimler))
-    for kelime in ("Taş...", "Kâğıt...", "Makas!"):
+    for kelime in tr_en(("Taş...", "Kâğıt...", "Makas!"), ("Rock...", "Paper...", "Scissors!")):
         sys.stdout.write(f"  {SARI}{kelime}{RESET}")
         sys.stdout.flush()
         time.sleep(0.35)
     print()
-    soyle(f"Sen: {secimler[senin]}   Panda: {secimler[pandanin]}", BEYAZ)
+    soyle(tr_en(f"Sen: {secimler[senin]}   Panda: {secimler[pandanin]}",
+                f"You: {secimler[senin]}   Panda: {secimler[pandanin]}"), BEYAZ)
     if senin == pandanin:
-        soyle("🤝 Berabere!", SARI)
+        soyle(tr_en("🤝 Berabere!", "🤝 It's a draw!"), SARI)
     elif yener[senin] == pandanin:
         TKM_SKOR["sen"] += 1
-        soyle("🎉 Kazandın!", YESIL)
+        soyle(tr_en("🎉 Kazandın!", "🎉 You win!"), YESIL)
     else:
         TKM_SKOR["panda"] += 1
-        soyle("🐼 Panda kazandı!", KIRMIZI)
-    soyle(f"Skor → Sen {TKM_SKOR['sen']} - {TKM_SKOR['panda']} Panda", GRI)
+        soyle(tr_en("🐼 Panda kazandı!", "🐼 The panda wins!"), KIRMIZI)
+    soyle(tr_en(f"Skor → Sen {TKM_SKOR['sen']} - {TKM_SKOR['panda']} Panda",
+                f"Score → You {TKM_SKOR['sen']} - {TKM_SKOR['panda']} Panda"), GRI)
 
 
-@komut("yilan", "Oyunlar", "Klasik yılan oyunu: oklarla bambuları topla", takma=("snake",))
+@komut("yilan", "snake", "Oyunlar", "Klasik yılan oyunu: oklarla bambuları topla",
+       "Classic snake: collect bamboo with the arrow keys")
 def k_yilan(arg):
     if not ekran_gerekli():
         return
     en, boy = min(genislik() - 4, 60), min(yukseklik() - 5, 20)
     if en < 20 or boy < 8:
-        hata("Pencere çok küçük, biraz büyüt.")
+        hata(tr_en("Pencere çok küçük, biraz büyüt.", "The window is too small, make it a bit bigger."))
         return
     yonler = {"YUKARI": (0, -1), "ASAGI": (0, 1), "SOL": (-1, 0), "SAG": (1, 0),
               "w": (0, -1), "s": (0, 1), "a": (-1, 0), "d": (1, 0)}
@@ -2538,8 +2865,10 @@ def k_yilan(arg):
             hucre(x, y, T.ANA + "o")
         hucre(*yem, YESIL + KALIN + "Ψ")
         while True:
-            sys.stdout.write(git(1, 1) + f"{T.ANA}{KALIN}🐍 YILAN{RESET}  Puan: {BEYAZ}{puan}{RESET}  "
-                                         f"Rekor: {SARI}{max(rekor, puan)}{RESET}  {GRI}oklar/WASD • q çık{RESET}\033[K")
+            sys.stdout.write(git(1, 1) + f"{T.ANA}{KALIN}🐍 {tr_en('YILAN', 'SNAKE')}{RESET}  "
+                                         f"{tr_en('Puan', 'Score')}: {BEYAZ}{puan}{RESET}  "
+                                         f"{tr_en('Rekor', 'Best')}: {SARI}{max(rekor, puan)}{RESET}  "
+                                         f"{GRI}{tr_en('oklar/WASD • q çık', 'arrows/WASD • q quit')}{RESET}\033[K")
             sys.stdout.flush()
             yeni_yon = yon
             bitis = time.time() + max(0.05, 0.14 - puan * 0.004)
@@ -2568,16 +2897,18 @@ def k_yilan(arg):
             else:
                 hucre(*yilan.pop(), " ")
         yeni_rekor = puan > 0 and rekor_kontrol("yilan", puan)
-        mesaj = f" OYUN BİTTİ! Puan: {puan} {'🏆 YENİ REKOR!' if yeni_rekor else ''} "
+        rekor_yazisi = tr_en("🏆 YENİ REKOR!", "🏆 NEW RECORD!") if yeni_rekor else ""
+        mesaj = f" {tr_en('OYUN BİTTİ! Puan', 'GAME OVER! Score')}: {puan} {rekor_yazisi} "
         sys.stdout.write(git(boy // 2 + 3, max(2, en // 2 - len(mesaj) // 2)) + TERS + KIRMIZI + KALIN + mesaj + RESET)
-        sys.stdout.write(git(boy // 2 + 4, max(2, en // 2 - 10)) + GRI + "(devam için bir tuşa bas)" + RESET)
+        sys.stdout.write(git(boy // 2 + 4, max(2, en // 2 - 10)) + GRI
+                         + tr_en("(devam için bir tuşa bas)", "(press any key to continue)") + RESET)
         sys.stdout.flush()
         time.sleep(0.6)
         tuslari_bosalt()
         tus_oku()
 
 
-YAZI_CUMLELERI = [
+YAZI_CUMLELERI = {"tr": [
     "Panda bambu yerken kod yazmayı da ihmal etmez.",
     "Bugün küçük bir adım at, yarın büyük bir program yaz.",
     "Klavyede hızlı olmak için önce doğru yazmayı öğren.",
@@ -2585,15 +2916,25 @@ YAZI_CUMLELERI = [
     "Her hata seni daha iyi bir programcı yapar.",
     "Terminal ekranı siyah olabilir ama fikirlerin renkli olsun.",
     "Döngüler, koşullar ve fonksiyonlar programlamanın temelidir.",
-]
+], "en": [
+    "A panda never forgets to write code while eating bamboo.",
+    "Take a small step today and write a big program tomorrow.",
+    "To type fast, first learn to type correctly.",
+    "Learning Python is fun and very useful.",
+    "Every mistake makes you a better programmer.",
+    "The terminal screen may be black, but your ideas can be colorful.",
+    "Loops, conditions and functions are the basics of programming.",
+]}
 
 
-@komut("yazhizi", "Oyunlar", "Klavye hız testi: dakikada kaç kelime yazıyorsun?", takma=("typing", "wpm"))
+@komut("yazhizi", "typing wpm", "Oyunlar", "Klavye hız testi: dakikada kaç kelime yazıyorsun?",
+       "Typing test: how many words per minute can you type?")
 def k_yazhizi(arg):
-    cumle = random.choice(YAZI_CUMLELERI)
-    soyle("Aşağıdaki cümleyi olabildiğince hızlı ve doğru yaz:", GRI)
+    cumle = random.choice(YAZI_CUMLELERI[dil()])
+    soyle(tr_en("Aşağıdaki cümleyi olabildiğince hızlı ve doğru yaz:",
+                "Type the sentence below as fast and as accurately as you can:"), GRI)
     print(f"\n  {BEYAZ}{KALIN}{cumle}{RESET}\n")
-    sor("Hazır olunca Enter'a bas...")
+    sor(tr_en("Hazır olunca Enter'a bas...", "Press Enter when you're ready..."))
     baslangic = time.time()
     yazilan = input(f"  {T.ANA}> {RESET}")
     sure = max(time.time() - baslangic, 0.1)
@@ -2601,21 +2942,24 @@ def k_yazhizi(arg):
     kelime_dakika = len(yazilan) / 5 / (sure / 60) * dogruluk / 100
     karsilastirma = "".join((YESIL if i < len(cumle) and h == cumle[i] else KIRMIZI) + h
                             for i, h in enumerate(yazilan))
-    print(f"  {GRI}Sen:{RESET} {karsilastirma}{RESET}")
-    soyle(f"⏱  {sure:.1f} sn  •  🎯 %{dogruluk:.0f} doğruluk  •  ⚡ {BEYAZ}{KALIN}{kelime_dakika:.0f} kelime/dk")
+    print(f"  {GRI}{tr_en('Sen:', 'You:')}{RESET} {karsilastirma}{RESET}")
+    soyle(tr_en(f"⏱  {sure:.1f} sn  •  🎯 %{dogruluk:.0f} doğruluk  •  ⚡ {BEYAZ}{KALIN}{kelime_dakika:.0f} kelime/dk",
+                f"⏱  {sure:.1f} s  •  🎯 {dogruluk:.0f}% accuracy  •  ⚡ {BEYAZ}{KALIN}{kelime_dakika:.0f} WPM"))
     if dogruluk < 70:
-        soyle("Doğruluk çok düşük, bu tur sayılmadı. Önce doğru, sonra hızlı! 🐢", KIRMIZI)
+        soyle(tr_en("Doğruluk çok düşük, bu tur sayılmadı. Önce doğru, sonra hızlı! 🐢",
+                    "Accuracy is too low, this round doesn't count. Accurate first, fast later! 🐢"), KIRMIZI)
         return
-    seviye = ("🐢 Kaplumbağa", 20), ("🐼 Panda", 35), ("🐇 Tavşan", 50), ("🐆 Çita", 70), ("🚀 Roket", 9999)
-    soyle("Seviyen: " + next(ad for ad, sinir in seviye if kelime_dakika < sinir), SARI)
+    seviye = ((tr_en("🐢 Kaplumbağa", "🐢 Turtle"), 20), ("🐼 Panda", 35), (tr_en("🐇 Tavşan", "🐇 Rabbit"), 50),
+              (tr_en("🐆 Çita", "🐆 Cheetah"), 70), (tr_en("🚀 Roket", "🚀 Rocket"), 9999))
+    soyle(tr_en("Seviyen: ", "Your level: ") + next(ad for ad, sinir in seviye if kelime_dakika < sinir), SARI)
     if rekor_kontrol("yazhizi", round(kelime_dakika)):
-        soyle("🏆 YENİ REKOR!", SARI)
+        soyle(tr_en("🏆 YENİ REKOR!", "🏆 NEW RECORD!"), SARI)
 
 
-@komut("islem", "Oyunlar", "Hızlı zihinden matematik yarışı (10 soru)", takma=("mathquiz",))
+@komut("islem", "mathquiz", "Oyunlar", "Hızlı zihinden matematik yarışı (10 soru)", "A quick mental math race (10 questions)")
 def k_islem(arg):
     dogru, baslangic = 0, time.time()
-    soyle("🧮 10 soru geliyor, hızlı ol! (çıkmak için q)")
+    soyle(tr_en("🧮 10 soru geliyor, hızlı ol! (çıkmak için q)", "🧮 10 questions coming up, be quick! (q to quit)"))
     for no in range(1, 11):
         islem = random.choice("+-×")
         if islem == "×":
@@ -2631,36 +2975,39 @@ def k_islem(arg):
             dogru += 1
             soyle("✓", YESIL)
         else:
-            soyle(f"✗ doğrusu {cevap}", KIRMIZI)
+            soyle(tr_en(f"✗ doğrusu {cevap}", f"✗ the answer is {cevap}"), KIRMIZI)
     sure = time.time() - baslangic
-    soyle(f"🏁 {dogru}/10 doğru, {sure:.1f} saniyede.", BEYAZ + KALIN)
+    soyle(tr_en(f"🏁 {dogru}/10 doğru, {sure:.1f} saniyede.", f"🏁 {dogru}/10 correct in {sure:.1f} seconds."), BEYAZ + KALIN)
     if dogru == 10 and rekor_kontrol("islem_sure", round(sure, 1), buyuk_iyi=False):
-        soyle("🏆 YENİ REKOR! (10/10 en hızlı)", SARI)
+        soyle(tr_en("🏆 YENİ REKOR! (10/10 en hızlı)", "🏆 NEW RECORD! (fastest 10/10)"), SARI)
 
 
-@komut("hafiza", "Oyunlar", "Ekranda beliren sayıyı ezberle, her tur uzar", takma=("memory",))
+@komut("hafiza", "memory", "Oyunlar", "Ekranda beliren sayıyı ezberle, her tur uzar",
+       "Memorize the number on the screen; it gets longer every round")
 def k_hafiza(arg):
     uzunluk = 3
-    soyle("🧠 Sayı kısa süre görünecek, sonra kaybolacak. Aynen yaz!")
+    soyle(tr_en("🧠 Sayı kısa süre görünecek, sonra kaybolacak. Aynen yaz!",
+                "🧠 A number will show up for a moment, then vanish. Type it back exactly!"))
     time.sleep(1)
     while True:
         dizi = "".join(random.choice(string.digits) for _ in range(uzunluk))
-        print(f"  {SARI}Ezberle:{RESET} {BEYAZ}{KALIN}{dizi}{RESET}")
+        print(f"  {SARI}{tr_en('Ezberle:', 'Memorize:')}{RESET} {BEYAZ}{KALIN}{dizi}{RESET}")
         time.sleep(1 + uzunluk * 0.35)
         sys.stdout.write("\033[F\033[K")
         sys.stdout.flush()
         tuslari_bosalt()
-        cevap = sor("Sayı neydi? ")
+        cevap = sor(tr_en("Sayı neydi? ", "What was the number? "))
         if cevap != dizi:
-            soyle(f"✗ Yanlış! Doğrusu {dizi} idi. Ulaştığın seviye: {uzunluk - 1} basamak", KIRMIZI)
+            soyle(tr_en(f"✗ Yanlış! Doğrusu {dizi} idi. Ulaştığın seviye: {uzunluk - 1} basamak",
+                        f"✗ Wrong! It was {dizi}. You made it to {uzunluk - 1} digits"), KIRMIZI)
             if uzunluk > 3 and rekor_kontrol("hafiza", uzunluk - 1):
-                soyle("🏆 YENİ REKOR!", SARI)
+                soyle(tr_en("🏆 YENİ REKOR!", "🏆 NEW RECORD!"), SARI)
             return
-        soyle(f"✓ Doğru! Şimdi {uzunluk + 1} basamak...", YESIL)
+        soyle(tr_en(f"✓ Doğru! Şimdi {uzunluk + 1} basamak...", f"✓ Correct! Now {uzunluk + 1} digits..."), YESIL)
         uzunluk += 1
 
 
-BILMECELER = [
+BILMECELER = {"tr": [
     ("Tuşları var ama kilit açmaz, boşluğu var ama oda değil. Nedir?", ["klavye"]),
     ("Ağzı var konuşmaz, yatağı var uyumaz. Nedir?", ["nehir", "irmak", "dere"]),
     ("Ne kadar çok kurularsa o kadar ıslanır. Nedir?", ["havlu"]),
@@ -2673,32 +3020,46 @@ BILMECELER = [
     ("Sadece 0 ve 1 bilir ama her şeyi anlatır. Nedir?", ["ikili", "binary", "ikilik", "ikili sistem"]),
     ("Ne kadar çok alırsan arkanda o kadar çok bırakırsın. Nedir?", ["adim", "ayak izi", "iz", "adimlar"]),
     ("Hep önündedir ama asla göremezsin. Nedir?", ["gelecek", "yarin"]),
-]
+], "en": [
+    ("It has keys but opens no locks, and a space but no room. What is it?", ["keyboard", "a keyboard"]),
+    ("It has a mouth but never talks, and a bed but never sleeps. What is it?", ["river", "a river", "stream"]),
+    ("The more it dries, the wetter it gets. What is it?", ["towel", "a towel"]),
+    ("It belongs to you, but other people use it more than you do. What is it?", ["name", "your name", "my name"]),
+    ("You have to break it before you can use it. What is it?", ["egg", "an egg"]),
+    ("It has a mouse but no cat. What is it?", ["computer", "a computer", "pc"]),
+    ("It has hands but can't clap. What is it?", ["clock", "a clock", "watch"]),
+    ("It has windows but no house. What is it? (hint: an operating system)", ["windows"]),
+    ("It's black and white, eats bamboo and runs this terminal. Who is it?", ["panda", "a panda", "the panda"]),
+    ("It only knows 0 and 1, yet it can say anything. What is it?", ["binary", "binary code"]),
+    ("The more you take, the more you leave behind. What are they?", ["footsteps", "steps", "footprints"]),
+    ("It's always in front of you, but you can never see it. What is it?", ["future", "the future", "tomorrow"]),
+]}
 
 
-@komut("bilmece", "Oyunlar", "Bilmece sorar, bil bakalım", takma=("riddle",))
+@komut("bilmece", "riddle", "Oyunlar", "Bilmece sorar, bil bakalım", "Asks you a riddle; can you solve it?")
 def k_bilmece(arg):
-    soru, cevaplar = random.choice(BILMECELER)
+    soru, cevaplar = random.choice(BILMECELER[dil()])
     yaz(f"  ❓ {soru}", BEYAZ, 0.02)
     for hak in (2, 1, 0):
-        cevap = sadelestir(sor("Cevabın: "))
+        cevap = sadelestir(sor(tr_en("Cevabın: ", "Your answer: ")))
         if cevap in cevaplar:
-            soyle("🎉 Bildin!", YESIL + KALIN)
+            soyle(tr_en("🎉 Bildin!", "🎉 You got it!"), YESIL + KALIN)
             return
         if hak:
-            soyle(f"✗ Olmadı, {hak} hakkın kaldı.", KIRMIZI)
-    soyle(f"Cevap: {cevaplar[0]}", SARI)
+            soyle(tr_en(f"✗ Olmadı, {hak} hakkın kaldı.", f"✗ Nope, {hak} {'try' if hak == 1 else 'tries'} left."), KIRMIZI)
+    soyle(tr_en(f"Cevap: {cevaplar[0]}", f"Answer: {cevaplar[0]}"), SARI)
 
 
-@komut("rekorlar", "Oyunlar", "Oyunlardaki en iyi skorlarını gösterir", takma=("skorlar",))
+@komut("rekorlar skorlar", "scores", "Oyunlar", "Oyunlardaki en iyi skorlarını gösterir", "Shows your best game scores")
 def k_rekorlar(arg):
-    adlar = {"yilan": "Yılan (puan)", "tahmin": "Tahmin (en az deneme)", "yazhizi": "Yazma hızı (kelime/dk)",
-             "hafiza": "Hafıza (basamak)", "islem_sure": "İşlem 10/10 (saniye)"}
+    adlar = {"yilan": tr_en("Yılan (puan)", "Snake (score)"), "tahmin": tr_en("Tahmin (en az deneme)", "Guess (fewest tries)"),
+             "yazhizi": tr_en("Yazma hızı (kelime/dk)", "Typing speed (WPM)"),
+             "hafiza": tr_en("Hafıza (basamak)", "Memory (digits)"), "islem_sure": tr_en("İşlem 10/10 (saniye)", "Math 10/10 (seconds)")}
     if not VERI["rekorlar"]:
-        soyle("Henüz rekor yok. Hadi bir oyun oyna! 🎮", GRI)
+        soyle(tr_en("Henüz rekor yok. Hadi bir oyun oyna! 🎮", "No records yet. Go play a game! 🎮"), GRI)
         return
     kutu([f"{T.ANA}{adlar.get(ad, ad):<24}{RESET} {BEYAZ}{KALIN}{deger}{RESET}"
-          for ad, deger in VERI["rekorlar"].items()], "🏆 REKORLAR")
+          for ad, deger in VERI["rekorlar"].items()], tr_en("🏆 REKORLAR", "🏆 HIGH SCORES"))
 
 
 # ═══════════════════════════ KOMUTLAR: ÖĞREN ═══════════════════════════
@@ -2718,7 +3079,7 @@ def renklendir(kod):
     return BEYAZ + re.sub(desen, boya, kod) + RESET
 
 
-DERSLER = {
+DERSLER = {"tr": {  # Türkçe ve İngilizce dersler aynı sırada olmalı (konu_bul sırayla eşleştirir)
     "degisken": ("Değişkenler", "Değişken, bir değeri saklayan etiketli kutudur.", [
         "isim = \"Panda\"      # metin (str)",
         "yas = 5             # tam sayı (int)",
@@ -2806,56 +3167,175 @@ DERSLER = {
         "ad = input(\"Adın ne? \")",
         "yas = int(input(\"Kaç yaşındasın? \"))",
         "print(f\"{ad}, 10 yıl sonra {yas + 10} yaşında olacaksın\")"]),
-}
+}, "en": {
+    "variables": ("Variables", "A variable is a labeled box that stores a value.", [
+        "name = \"Panda\"      # text (str)",
+        "age = 5             # whole number (int)",
+        "height = 1.2        # decimal number (float)",
+        "is_hungry = True    # true/false (bool)",
+        "print(name, age)    # Panda 5"]),
+    "strings": ("Strings (str)", "Anything inside quotes is a string. You can add, multiply and slice strings.", [
+        "food = \"Bamboo\"",
+        "print(food + \" is tasty\")   # joining",
+        "print(food * 3)             # BambooBambooBamboo",
+        "print(food[0], food[-1])    # B o",
+        "print(f\"{food} is yummy\")   # f-string",
+        "print(food.upper(), len(food))"]),
+    "if": ("Conditions (if)", "The program makes a decision: if the condition is true, that block runs.", [
+        "score = int(input(\"Your score: \"))",
+        "if score >= 85:",
+        "    print(\"Excellent!\")",
+        "elif score >= 50:",
+        "    print(\"You passed\")",
+        "else:",
+        "    print(\"Study a bit more\")"]),
+    "loops": ("Loops (for / while)", "The way to make the computer do the same job again and again.", [
+        "for i in range(5):          # 0,1,2,3,4",
+        "    print(i)",
+        "",
+        "count = 3",
+        "while count > 0:            # repeats while the condition is true",
+        "    print(count)",
+        "    count -= 1"]),
+    "lists": ("Lists", "Keeps several values in order. Written with square brackets [].", [
+        "fruits = [\"apple\", \"banana\", \"cherry\"]",
+        "fruits.append(\"bamboo\")     # add to the end",
+        "print(fruits[0])            # apple",
+        "print(len(fruits))          # 4",
+        "for f in fruits:",
+        "    print(f)"]),
+    "dicts": ("Dictionaries (dict)", "Stores key → value pairs. Written with curly braces {}.", [
+        "panda = {\"name\": \"Po\", \"age\": 5}",
+        "print(panda[\"name\"])         # Po",
+        "panda[\"food\"] = \"bamboo\"     # add a new key",
+        "for key, value in panda.items():",
+        "    print(key, value)"]),
+    "functions": ("Functions", "A reusable piece of code. You define one with 'def'.", [
+        "def greet(name):",
+        "    return \"Hello \" + name",
+        "",
+        "print(greet(\"Panda\"))       # Hello Panda",
+        "",
+        "def add(a, b=10):           # b has a default value",
+        "    return a + b"]),
+    "classes": ("Classes (class)", "Create your own data type: attributes + behaviors.", [
+        "class Panda:",
+        "    def __init__(self, name):",
+        "        self.name = name",
+        "",
+        "    def eat(self):",
+        "        print(self.name + \" is eating bamboo\")",
+        "",
+        "po = Panda(\"Po\")",
+        "po.eat()"]),
+    "errors": ("Catching errors (try)", "Catch errors so your program doesn't crash.", [
+        "try:",
+        "    number = int(input(\"Number: \"))",
+        "    print(10 / number)",
+        "except ValueError:",
+        "    print(\"That's not a number!\")",
+        "except ZeroDivisionError:",
+        "    print(\"You can't divide by zero!\")"]),
+    "files": ("Files", "Read and write files with 'with open'; the file closes by itself when you're done.", [
+        "with open(\"note.txt\", \"w\", encoding=\"utf-8\") as f:",
+        "    f.write(\"Buy bamboo\\n\")",
+        "",
+        "with open(\"note.txt\", encoding=\"utf-8\") as f:",
+        "    print(f.read())"]),
+    "modules": ("Modules (import)", "Use ready-made code that other people wrote.", [
+        "import random",
+        "print(random.randint(1, 6))     # roll a die",
+        "",
+        "from math import sqrt",
+        "print(sqrt(16))                 # 4.0",
+        "",
+        "import time",
+        "time.sleep(1)                   # wait 1 second"]),
+    "input": ("Getting input (input)", "input() ALWAYS returns text; don't forget to turn it into a number!", [
+        "name = input(\"What's your name? \")",
+        "age = int(input(\"How old are you? \"))",
+        "print(f\"{name}, in 10 years you'll be {age + 10}\")"]),
+}}
 
 
-@komut("ogren", "Öğren", "Mini Python dersleri (örnek kodlu)", "ogren [konu]", ("ders", "learn"))
+def konu_bul(tablo, arg):
+    """Konuyu iki dilde de tanır, aktif dildeki adını döndürür: 'dongu' da 'loops' da İngilizcede 'loops' olur."""
+    aranan = sadelestir(arg)
+    for anahtarlar in (list(tablo["tr"]), list(tablo["en"])):
+        if aranan in anahtarlar:
+            return list(tablo[dil()])[anahtarlar.index(aranan)]
+    return None
+
+
+@komut("ogren ders", "learn", "Öğren", "Mini Python dersleri (örnek kodlu)", "Mini Python lessons (with example code)",
+       "[konu]", "[topic]")
 def k_ogren(arg):
-    konu = sadelestir(arg)
-    if konu not in DERSLER:
+    konu = konu_bul(DERSLER, arg)
+    if not konu:
         if arg:
-            hata(f"'{arg}' diye bir ders yok.")
-        soyle("📚 Dersler: " + ", ".join(DERSLER), BEYAZ)
-        soyle("Örnek: ogren dongu", GRI)
+            hata(tr_en(f"'{arg}' diye bir ders yok.", f"There's no lesson called '{arg}'."))
+        soyle(tr_en("📚 Dersler: ", "📚 Lessons: ") + ", ".join(DERSLER[dil()]), BEYAZ)
+        soyle(tr_en("Örnek: ogren dongu", "Example: learn loops"), GRI)
         return
-    baslik, aciklama, kod = DERSLER[konu]
+    baslik, aciklama, kod = DERSLER[dil()][konu]
     print(f"\n  {T.ANA}{KALIN}📘 {baslik}{RESET}")
     soyle(aciklama, BEYAZ)
-    kutu([renklendir(satir) for satir in kod], "örnek kod", GRI)
-    soyle("Deneme: bu kodu bir .py dosyasına yazıp çalıştır!", GRI)
+    kutu([renklendir(satir) for satir in kod], tr_en("örnek kod", "example code"), GRI)
+    soyle(tr_en("Deneme: bu kodu bir .py dosyasına yazıp çalıştır!", "Try it: put this code in a .py file and run it!"), GRI)
 
 
-IPUCLARI = [
-    "print(*liste) listeyi köşeli parantezsiz yazdırır.",
-    "a, b = b, a ile iki değişkenin değerini tek satırda değiştirebilirsin.",
-    "f-string: print(f\"{ad} {yas} yaşında\") en okunaklı metin biçimidir.",
-    "len() ile metnin, listenin, sözlüğün uzunluğunu öğrenirsin.",
-    "range(1, 11) 1'den 10'a kadar sayar; 11 dahil değildir!",
-    "liste[::-1] listeyi (ya da metni) ters çevirir.",
-    "enumerate(liste) ile döngüde hem sırayı hem değeri alırsın.",
-    "Sözlükte olmayan anahtar için hata almamak için sozluk.get(\"anahtar\", varsayilan) kullan.",
-    "input() hep metin verir. Sayı lazımsa int(input()) yaz.",
+IPUCLARI = {"tr": [  # `ters tırnak` içindeki kısımlar kod olarak renklendirilir
+    "`print(*liste)` listeyi köşeli parantezsiz yazdırır.",
+    "`a, b = b, a` ile iki değişkenin değerini tek satırda değiştirebilirsin.",
+    "f-string: `print(f\"{ad} {yas} yaşında\")` en okunaklı metin biçimidir.",
+    "`len()` ile metnin, listenin, sözlüğün uzunluğunu öğrenirsin.",
+    "`range(1, 11)` 1'den 10'a kadar sayar; 11 dahil değildir!",
+    "`liste[::-1]` listeyi (ya da metni) ters çevirir.",
+    "`enumerate(liste)` ile döngüde hem sırayı hem değeri alırsın.",
+    "Sözlükte olmayan anahtar için hata almamak için `sozluk.get(\"anahtar\", varsayilan)` kullan.",
+    "`input()` hep metin verir. Sayı lazımsa `int(input())` yaz.",
     "Değişken adlarında Türkçe karakter kullanabilirsin ama İngilizce klavye alışkanlığı işini kolaylaştırır.",
     "Hata mesajının EN ALT satırını oku; asıl sorun oradadır.",
     "Girinti (4 boşluk) Python'da süs değil, kuraldır!",
-    "'in' ile üyelik kontrolü: if \"a\" in \"panda\": ...",
-    "sum(liste), max(liste), min(liste) hazır fonksiyonlardır.",
-    "Liste üreteci: kareler = [x*x for x in range(10)]",
-    "if __name__ == \"__main__\": dosya doğrudan çalıştırıldığında çalışacak kodu ayırır.",
-    "help(print) yazarsan Python sana print'in nasıl kullanıldığını anlatır.",
-    "type(x) ile bir değişkenin tipini öğrenebilirsin.",
-    "round(3.14159, 2) → 3.14",
+    "`in` ile üyelik kontrolü: `if \"a\" in \"panda\": ...`",
+    "`sum(liste)`, `max(liste)`, `min(liste)` hazır fonksiyonlardır.",
+    "Liste üreteci: `kareler = [x*x for x in range(10)]`",
+    "`if __name__ == \"__main__\":` dosya doğrudan çalıştırıldığında çalışacak kodu ayırır.",
+    "`help(print)` yazarsan Python sana print'in nasıl kullanıldığını anlatır.",
+    "`type(x)` ile bir değişkenin tipini öğrenebilirsin.",
+    "`round(3.14159, 2)` → `3.14`",
     "Kodunu küçük parçalar halinde yaz ve her parçayı çalıştırıp dene.",
-]
+], "en": [
+    "`print(*my_list)` prints a list without the square brackets.",
+    "`a, b = b, a` swaps the values of two variables in a single line.",
+    "f-strings are the most readable way to build text: `print(f\"{name} is {age}\")`",
+    "`len()` gives you the length of a string, a list or a dictionary.",
+    "`range(1, 11)` counts from 1 to 10; 11 is not included!",
+    "`my_list[::-1]` reverses a list (or a string).",
+    "`enumerate(my_list)` gives you both the position and the value in a loop.",
+    "To avoid an error when a key is missing, use `my_dict.get(\"key\", default)`.",
+    "`input()` always returns text. If you need a number, write `int(input())`.",
+    "Python names use snake_case: `user_name`, not `userName`.",
+    "Read the LAST line of an error message first; that's where the real problem is.",
+    "Indentation (4 spaces) isn't decoration in Python, it's the rule!",
+    "Check membership with `in`: `if \"a\" in \"panda\": ...`",
+    "`sum(my_list)`, `max(my_list)` and `min(my_list)` are built in.",
+    "List comprehension: `squares = [x*x for x in range(10)]`",
+    "`if __name__ == \"__main__\":` marks code that should run only when the file is run directly.",
+    "Type `help(print)` and Python will explain how print works.",
+    "`type(x)` tells you the type of a variable.",
+    "`round(3.14159, 2)` → `3.14`",
+    "Write your code in small pieces, and run each piece to test it.",
+]}
 
 
-@komut("ipucu", "Öğren", "Rastgele bir Python ipucu verir", takma=("tip",))
+@komut("ipucu", "tip", "Öğren", "Rastgele bir Python ipucu verir", "Gives a random Python tip")
 def k_ipucu(arg):
-    ipucu = random.choice(IPUCLARI)
-    soyle(f"💡 {renklendir(ipucu)}")
+    parcalar = random.choice(IPUCLARI[dil()]).split("`")  # tek sıradakiler ters tırnak içindeki koddur
+    soyle("💡 " + "".join(renklendir(p) if i % 2 else BEYAZ + p for i, p in enumerate(parcalar)))
 
 
-KOPYALAR = {
+KOPYALAR = {"tr": {  # Türkçe ve İngilizce konular aynı sırada olmalı (konu_bul sırayla eşleştirir)
     "git": [("git init", "Klasörü git deposu yap"), ("git status", "Neler değişti?"),
             ("git add .", "Tüm değişiklikleri hazırla"), ("git commit -m \"mesaj\"", "Kaydet (commit)"),
             ("git log --oneline", "Geçmişi kısa göster"), ("git branch yeni", "Yeni dal aç"),
@@ -2877,67 +3357,119 @@ KOPYALAR = {
                ("Win + D", "Masaüstünü göster"), ("Win + Shift + S", "Ekran görüntüsü al"),
                ("Win + V", "Pano geçmişi"), ("Win + .", "Emoji paneli 🐼"), ("Ctrl + Shift + Esc", "Görev yöneticisi"),
                ("Ctrl + /", "(Kod editöründe) satırı yorum yap")],
-}
+}, "en": {
+    "git": [("git init", "Turn the folder into a git repo"), ("git status", "What changed?"),
+            ("git add .", "Stage all your changes"), ("git commit -m \"message\"", "Save a snapshot (commit)"),
+            ("git log --oneline", "Show a short history"), ("git branch new", "Create a new branch"),
+            ("git switch new", "Switch to that branch"), ("git merge new", "Merge the branch in"),
+            ("git clone <url>", "Download a repo"), ("git pull", "Get the changes from the remote"),
+            ("git push", "Send your changes"), ("git diff", "See the changes line by line")],
+    "python": [("python file.py", "Run a file"), ("python", "Open interactive Python"),
+               ("pip install package", "Install a package"), ("pip list", "List installed packages"),
+               ("python -m venv venv", "Create a virtual environment"),
+               ("venv\\Scripts\\activate", "Activate the virtual environment (Windows)"),
+               ("python -m http.server", "Serve the current folder as a website"),
+               ("python -c \"print(1+1)\"", "Run a single line of code")],
+    "terminal": [("cd folder", "Go into a folder"), ("cd ..", "Go up one folder"), ("dir / ls", "List files"),
+                 ("mkdir name", "Create a folder"), ("cls / clear", "Clear the screen"),
+                 ("type / cat file", "Print a file"), ("copy / cp a b", "Copy a file"),
+                 ("move / mv a b", "Move / rename a file"), ("↑ key", "Bring back the previous command"),
+                 ("Tab key", "Autocomplete file names"), ("Ctrl + C", "Stop the running program")],
+    "keyboard": [("Ctrl + C / V / X", "Copy / paste / cut"), ("Ctrl + Z / Y", "Undo / redo"),
+                 ("Ctrl + S", "Save"), ("Ctrl + F", "Find"), ("Alt + Tab", "Switch between windows"),
+                 ("Win + D", "Show the desktop"), ("Win + Shift + S", "Take a screenshot"),
+                 ("Win + V", "Clipboard history"), ("Win + .", "Emoji panel 🐼"), ("Ctrl + Shift + Esc", "Task Manager"),
+                 ("Ctrl + /", "Comment out a line (in code editors)")],
+}}
 
 
-@komut("kopya", "Öğren", "Kopya kâğıdı: git, python, terminal, klavye kısayolları", "kopya <konu>",
-       ("cheatsheet", "kisayol"))
+@komut("kopya kisayol", "cheatsheet", "Öğren", "Kopya kâğıdı: git, python, terminal, klavye kısayolları",
+       "Cheat sheets: git, python, terminal and keyboard shortcuts", "<konu>", "<topic>")
 def k_kopya(arg):
-    konu = sadelestir(arg)
-    if konu not in KOPYALAR:
-        soyle("📋 Kopya kâğıtları: " + ", ".join(KOPYALAR), BEYAZ)
-        soyle("Örnek: kopya git", GRI)
+    konu = konu_bul(KOPYALAR, arg)
+    if not konu:
+        soyle(tr_en("📋 Kopya kâğıtları: ", "📋 Cheat sheets: ") + ", ".join(KOPYALAR[dil()]), BEYAZ)
+        soyle(tr_en("Örnek: kopya git", "Example: cheatsheet git"), GRI)
         return
-    en = max(len(k) for k, _ in KOPYALAR[konu])
-    kutu([f"{T.ANA}{k:<{en}}{RESET}  {a}" for k, a in KOPYALAR[konu]], f"KOPYA: {tr_buyuk(konu)}")
+    satirlar = KOPYALAR[dil()][konu]
+    en = max(len(k) for k, _ in satirlar)
+    kutu([f"{T.ANA}{k:<{en}}{RESET}  {a}" for k, a in satirlar], tr_en("KOPYA: ", "CHEAT SHEET: ") + buyuk_harf(konu))
 
 
-HTTP_KODLARI = {
-    100: "Continue — devam et", 200: "OK — her şey yolunda ✅", 201: "Created — oluşturuldu",
-    204: "No Content — tamam ama gösterecek içerik yok", 301: "Moved Permanently — kalıcı olarak taşındı",
-    302: "Found — geçici olarak başka yerde", 304: "Not Modified — değişmedi, önbellekteki kullan",
-    400: "Bad Request — isteğin bozuk", 401: "Unauthorized — önce giriş yapmalısın",
-    403: "Forbidden — yasak, iznin yok 🚫", 404: "Not Found — bulunamadı 🔍",
-    405: "Method Not Allowed — bu yöntem kullanılamaz", 408: "Request Timeout — istek zaman aşımına uğradı",
-    418: "I'm a teapot — ben bir çaydanlığım ☕ (şaka olarak eklenmiş gerçek bir kod)",
-    429: "Too Many Requests — çok fazla istek, yavaş ol", 500: "Internal Server Error — sunucu patladı 💥",
-    502: "Bad Gateway — aradaki sunucu kötü cevap verdi", 503: "Service Unavailable — hizmet şu an yok / bakımda",
-    504: "Gateway Timeout — aradaki sunucu zamanında cevap alamadı",
+HTTP_KODLARI = {  # (Türkçe, İngilizce)
+    100: ("Continue — devam et", "Continue — keep going"),
+    200: ("OK — her şey yolunda ✅", "OK — all good ✅"),
+    201: ("Created — oluşturuldu", "Created — it was created"),
+    204: ("No Content — tamam ama gösterecek içerik yok", "No Content — fine, but there's nothing to show"),
+    301: ("Moved Permanently — kalıcı olarak taşındı", "Moved Permanently — it moved for good"),
+    302: ("Found — geçici olarak başka yerde", "Found — it's somewhere else for now"),
+    304: ("Not Modified — değişmedi, önbellekteki kullan", "Not Modified — nothing changed, use your cached copy"),
+    400: ("Bad Request — isteğin bozuk", "Bad Request — your request is broken"),
+    401: ("Unauthorized — önce giriş yapmalısın", "Unauthorized — you need to log in first"),
+    403: ("Forbidden — yasak, iznin yok 🚫", "Forbidden — you're not allowed 🚫"),
+    404: ("Not Found — bulunamadı 🔍", "Not Found — nothing here 🔍"),
+    405: ("Method Not Allowed — bu yöntem kullanılamaz", "Method Not Allowed — you can't use that method here"),
+    408: ("Request Timeout — istek zaman aşımına uğradı", "Request Timeout — the request took too long"),
+    418: ("I'm a teapot — ben bir çaydanlığım ☕ (şaka olarak eklenmiş gerçek bir kod)",
+          "I'm a teapot — a real code that was added as a joke ☕"),
+    429: ("Too Many Requests — çok fazla istek, yavaş ol", "Too Many Requests — slow down"),
+    500: ("Internal Server Error — sunucu patladı 💥", "Internal Server Error — the server blew up 💥"),
+    502: ("Bad Gateway — aradaki sunucu kötü cevap verdi", "Bad Gateway — a server in between gave a bad answer"),
+    503: ("Service Unavailable — hizmet şu an yok / bakımda", "Service Unavailable — down or under maintenance"),
+    504: ("Gateway Timeout — aradaki sunucu zamanında cevap alamadı",
+          "Gateway Timeout — a server in between didn't answer in time"),
 }
 
 
-@komut("http", "Öğren", "HTTP durum kodunun anlamını söyler (404, 500...)", "http [kod]")
+@komut("http", "http", "Öğren", "HTTP durum kodunun anlamını söyler (404, 500...)",
+       "Explains what an HTTP status code means (404, 500...)", "[kod]", "[code]")
 def k_http(arg):
     if arg.strip().isdigit() and int(arg) in HTTP_KODLARI:
-        soyle(f"🌐 {BEYAZ}{KALIN}{arg}{RESET}{T.ANA} → {HTTP_KODLARI[int(arg)]}")
+        soyle(f"🌐 {BEYAZ}{KALIN}{arg}{RESET}{T.ANA} → {tr_en(*HTTP_KODLARI[int(arg)])}")
         return
     if arg:
-        hata(f"'{arg}' kodunu bilmiyorum. Bildiklerim:")
+        hata(tr_en(f"'{arg}' kodunu bilmiyorum. Bildiklerim:", f"I don't know the code '{arg}'. Here are the ones I know:"))
     for kod, anlam in HTTP_KODLARI.items():
         renk = YESIL if kod < 300 else CAMGOBEGI if kod < 400 else SARI if kod < 500 else KIRMIZI
-        print(f"  {renk}{kod}{RESET}  {anlam}")
+        print(f"  {renk}{kod}{RESET}  {tr_en(*anlam)}")
 
 
-PORTLAR = {20: "FTP (veri)", 21: "FTP (kontrol) — dosya aktarımı", 22: "SSH — güvenli uzak bağlantı",
-           23: "Telnet — eski, şifresiz uzak bağlantı", 25: "SMTP — e-posta gönderme", 53: "DNS — alan adı çözme",
-           80: "HTTP — web", 110: "POP3 — e-posta alma", 143: "IMAP — e-posta alma", 443: "HTTPS — güvenli web 🔒",
-           3306: "MySQL veritabanı", 3389: "RDP — Windows uzak masaüstü", 5432: "PostgreSQL veritabanı",
-           6379: "Redis", 8080: "HTTP (alternatif / geliştirme)", 25565: "Minecraft sunucusu ⛏",
-           27017: "MongoDB veritabanı", 5000: "Flask geliştirme sunucusu", 3000: "Node / React geliştirme sunucusu"}
+PORTLAR = {  # (Türkçe, İngilizce)
+    20: ("FTP (veri)", "FTP (data)"),
+    21: ("FTP (kontrol) — dosya aktarımı", "FTP (control) — file transfer"),
+    22: ("SSH — güvenli uzak bağlantı", "SSH — secure remote login"),
+    23: ("Telnet — eski, şifresiz uzak bağlantı", "Telnet — old, unencrypted remote login"),
+    25: ("SMTP — e-posta gönderme", "SMTP — sending email"),
+    53: ("DNS — alan adı çözme", "DNS — looking up domain names"),
+    80: ("HTTP — web", "HTTP — the web"),
+    110: ("POP3 — e-posta alma", "POP3 — receiving email"),
+    143: ("IMAP — e-posta alma", "IMAP — receiving email"),
+    443: ("HTTPS — güvenli web 🔒", "HTTPS — the secure web 🔒"),
+    3306: ("MySQL veritabanı", "MySQL database"),
+    3389: ("RDP — Windows uzak masaüstü", "RDP — Windows Remote Desktop"),
+    5432: ("PostgreSQL veritabanı", "PostgreSQL database"),
+    6379: ("Redis", "Redis"),
+    8080: ("HTTP (alternatif / geliştirme)", "HTTP (alternative / development)"),
+    25565: ("Minecraft sunucusu ⛏", "Minecraft server ⛏"),
+    27017: ("MongoDB veritabanı", "MongoDB database"),
+    5000: ("Flask geliştirme sunucusu", "Flask development server"),
+    3000: ("Node / React geliştirme sunucusu", "Node / React development server"),
+}
 
 
-@komut("port", "Öğren", "Ağ port numarasının ne işe yaradığını söyler", "port [numara]")
+@komut("port", "port", "Öğren", "Ağ port numarasının ne işe yaradığını söyler", "Tells what a network port number is used for",
+       "[numara]", "[number]")
 def k_port(arg):
     if arg.strip().isdigit() and int(arg) in PORTLAR:
-        soyle(f"🔌 Port {BEYAZ}{KALIN}{arg}{RESET}{T.ANA} → {PORTLAR[int(arg)]}")
+        soyle(f"🔌 Port {BEYAZ}{KALIN}{arg}{RESET}{T.ANA} → {tr_en(*PORTLAR[int(arg)])}")
         return
     if arg:
-        hata(f"{arg} numaralı portu tanımıyorum. Bildiklerim:")
+        hata(tr_en(f"{arg} numaralı portu tanımıyorum. Bildiklerim:", f"I don't know port {arg}. Here are the ones I know:"))
     for no, anlam in sorted(PORTLAR.items()):
-        print(f"  {T.ANA}{no:>6}{RESET}  {anlam}")
+        print(f"  {T.ANA}{no:>6}{RESET}  {tr_en(*anlam)}")
 
 
-PY_SORULARI = [
+PY_SORULARI = {"tr": [
     ("print(type(3 / 2)) ne yazar?", ["<class 'int'>", "<class 'float'>", "<class 'str'>", "Hata verir"], 1),
     ("len(\"panda\") kaçtır?", ["4", "5", "6", "Hata verir"], 1),
     ("[1, 2, 3][-1] nedir?", ["1", "3", "-1", "Hata verir"], 1),
@@ -2953,26 +3485,44 @@ PY_SORULARI = [
     ("\"3\" + \"4\" nedir?", ["7", "\"34\"", "\"7\"", "Hata verir"], 1),
     ("Sözlük (dict) hangi parantezle yazılır?", ["[ ]", "( )", "{ }", "< >"], 2),
     ("int(\"12\") + 1 kaçtır?", ["\"121\"", "13", "12.1", "Hata verir"], 1),
-]
+], "en": [
+    ("What does print(type(3 / 2)) print?", ["<class 'int'>", "<class 'float'>", "<class 'str'>", "An error"], 1),
+    ("What is len(\"panda\")?", ["4", "5", "6", "An error"], 1),
+    ("What is [1, 2, 3][-1]?", ["1", "3", "-1", "An error"], 1),
+    ("What is \"ab\" * 3?", ["\"ab3\"", "\"ababab\"", "\"aaabbb\"", "An error"], 1),
+    ("What is 7 // 2?", ["3.5", "3", "4", "1"], 1),
+    ("What is 7 % 3?", ["1", "2", "2.33", "0"], 0),
+    ("What is bool(\"\")?", ["True", "False", "None", "\"\""], 1),
+    ("What is list(range(3))?", ["[1, 2, 3]", "[0, 1, 2]", "[0, 1, 2, 3]", "[3]"], 1),
+    ("Which of these can't be changed (immutable)?", ["list", "dict", "tuple", "set"], 2),
+    ("What is \"Hello\"[0:3]?", ["\"Hel\"", "\"Hell\"", "\"ell\"", "\"H\""], 0),
+    ("What is 2 ** 3?", ["6", "8", "9", "5"], 1),
+    ("Which keyword defines a function?", ["func", "function", "def", "fn"], 2),
+    ("What is \"3\" + \"4\"?", ["7", "\"34\"", "\"7\"", "An error"], 1),
+    ("Which brackets does a dict use?", ["[ ]", "( )", "{ }", "< >"], 2),
+    ("What is int(\"12\") + 1?", ["\"121\"", "13", "12.1", "An error"], 1),
+]}
 
 
-@komut("pyquiz", "Öğren", "5 soruluk Python bilgi yarışması", takma=("quiz", "sinav"))
+@komut("pyquiz sinav", "pyquiz quiz", "Öğren", "5 soruluk Python bilgi yarışması", "A 5-question Python quiz")
 def k_pyquiz(arg):
-    sorular = random.sample(PY_SORULARI, 5)
+    sorular = random.sample(PY_SORULARI[dil()], 5)
     puan = 0
-    soyle("🐍 Python Quiz! Her soruda a, b, c ya da d yaz.")
+    soyle(tr_en("🐍 Python Quiz! Her soruda a, b, c ya da d yaz.", "🐍 Python Quiz! Answer each question with a, b, c or d."))
     for no, (soru, secenekler, dogru) in enumerate(sorular, 1):
         print(f"\n  {BEYAZ}{KALIN}{no}. {renklendir(soru)}{RESET}")
         for harf, secenek in zip("abcd", secenekler):
             print(f"     {T.ANA}{harf}){RESET} {secenek}")
-        cevap = sadelestir(sor("Cevabın: "))
+        cevap = sadelestir(sor(tr_en("Cevabın: ", "Your answer: ")))
         if cevap == "abcd"[dogru]:
             puan += 1
-            soyle("✓ Doğru!", YESIL)
+            soyle(tr_en("✓ Doğru!", "✓ Correct!"), YESIL)
         else:
-            soyle(f"✗ Doğrusu: {'abcd'[dogru]}) {secenekler[dogru]}", KIRMIZI)
-    yorum = "Python ustası! 🏆" if puan == 5 else "Çok iyi! 👏" if puan >= 3 else "Biraz daha 'ogren' komutuna bak 📚"
-    soyle(f"\n  Sonuç: {puan}/5 — {yorum}", BEYAZ + KALIN)
+            soyle(tr_en("✗ Doğrusu: ", "✗ The answer is ") + f"{'abcd'[dogru]}) {secenekler[dogru]}", KIRMIZI)
+    yorum = (tr_en("Python ustası! 🏆", "Python master! 🏆") if puan == 5 else
+             tr_en("Çok iyi! 👏", "Very good! 👏") if puan >= 3 else
+             tr_en("Biraz daha 'ogren' komutuna bak 📚", "Spend some more time with the 'learn' command 📚"))
+    soyle(tr_en(f"\n  Sonuç: {puan}/5 — {yorum}", f"\n  Result: {puan}/5 — {yorum}"), BEYAZ + KALIN)
 
 
 # ═══════════════════════════ AÇILIŞ, VEDA VE ANA DÖNGÜ ═══════════════════════════
@@ -2986,14 +3536,18 @@ def acilis():
         print("  " + T.ANA + KALIN + satir)
         time.sleep(0.04)
     print(T.KOYU + "  " + "═" * 57 + RESET)
-    yaz(f"  >> PANDACODE v{SURUM} // kodlardan yapılmış bir panda", BEYAZ)
-    soyle(f"{len(KOMUTLAR)} komut yüklendi. 'yardim' yaz → ok tuşlarıyla gez.\n", SARI)
+    yaz(tr_en(f"  >> PANDACODE v{SURUM} // kodlardan yapılmış bir panda", f"  >> PANDACODE v{SURUM} // a panda made of code"),
+        BEYAZ)
+    soyle(tr_en(f"{len(KOMUTLAR)} komut yüklendi. 'yardim' yaz → ok tuşlarıyla gez.",
+                f"{len(KOMUTLAR)} commands loaded. Type 'help' → browse with the arrow keys."), SARI)
+    soyle(tr_en("For English, type 'lang'.", "Türkçe için 'dil' yaz.") + "\n", GRI)  # öbür dile geçiş, o dilde yazılır
 
 
 def veda():
     print(RESET)
     imlec(True)
-    yaz("  Görüşürüz! Panda bambusunu alıp uyumaya gidiyor... 🐼💤", T.ANA, 0.02)
+    yaz(tr_en("  Görüşürüz! Panda bambusunu alıp uyumaya gidiyor... 🐼💤",
+              "  See you! The panda grabs its bamboo and heads off to sleep... 🐼💤"), T.ANA, 0.02)
 
 
 def istem():
@@ -3003,29 +3557,29 @@ def istem():
 def calistir(satir):
     parcalar = satir.split(maxsplit=1)
     yazilan = parcalar[0]
-    ad = sadelestir(yazilan)
-    ad = TAKMA_ADLAR.get(ad, ad)
+    ad = komut_coz(yazilan)
     arg = parcalar[1].strip() if len(parcalar) > 1 else ""
     if ad not in KOMUTLAR:
         oneri = difflib.get_close_matches(ad, list(KOMUTLAR) + list(TAKMA_ADLAR), n=1, cutoff=0.6)
-        hata(f"'{yazilan}' diye bir komut yok aga.")
+        hata(tr_en(f"'{yazilan}' diye bir komut yok aga.", f"There's no '{yazilan}' command, buddy."))
         if oneri:
-            soyle(f"Bunu mu demek istedin: {BEYAZ}{KALIN}{TAKMA_ADLAR.get(oneri[0], oneri[0])}{RESET}{SARI} ?", SARI)
+            soyle(tr_en("Bunu mu demek istedin: ", "Did you mean: ")
+                  + f"{BEYAZ}{KALIN}{komut_adi(TAKMA_ADLAR.get(oneri[0], oneri[0]))}{RESET}{SARI} ?", SARI)
         else:
-            soyle("Tüm komutları görmek için 'yardim' yaz.", SARI)
+            soyle(tr_en("Tüm komutları görmek için 'yardim' yaz.", "Type 'help' to see every command."), SARI)
         return
     if ad != "tekrar":
-        GECMIS.append("sifreguc" if ad == "sifreguc" else satir)  # şifreler geçmişe yazılmasın
+        GECMIS.append(yazilan if ad == "sifreguc" else satir)  # şifreler geçmişe yazılmasın
     try:
         KOMUTLAR[ad]["fonksiyon"](arg)
     except KeyboardInterrupt:
         print(RESET)
-        soyle("⏹  İptal edildi.", SARI)
+        soyle(tr_en("⏹  İptal edildi.", "⏹  Cancelled."), SARI)
     except Cikis:
         raise
     except Exception as e:  # bir komut bozulsa bile terminal çökmesin
         print(RESET)
-        hata(f"Bir şeyler ters gitti: {e}")
+        hata(tr_en(f"Bir şeyler ters gitti: {e}", f"Something went wrong: {e}"))
 
 
 def main():
