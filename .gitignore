@@ -1,0 +1,8 @@
+# Kişisel veriler (notlar, tema, rekorlar)
+pandacode_veri.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
