@@ -10,13 +10,22 @@ import { Memo } from "../../native/memo";
 export const SETUP_SPLASH_MS = 2600;
 export const SETUP_TICK_MS = 33;
 
-/** Brand mark at 2x: every glyph doubled horizontally, every row doubled vertically. */
+/** Upper and lower cell of a half-block glyph scaled 2x vertically. */
+const HALF_BLOCK_SPLIT: Record<string, readonly [string, string]> = {
+	"▀": ["█", " "],
+	"▄": [" ", "█"],
+};
+
+/** Brand mark at 2x: every glyph doubled horizontally, every row doubled vertically (half-blocks split into whole cells). */
 const LARGE_LOGO = PI_LOGO.flatMap(line => {
-	let wide = "";
+	let upper = "";
+	let lower = "";
 	for (const char of line) {
-		wide += char === " " ? "  " : `${char}${char}`;
+		const [top, bottom] = HALF_BLOCK_SPLIT[char] ?? [char, char];
+		upper += top.repeat(2);
+		lower += bottom.repeat(2);
 	}
-	return [wide, wide];
+	return [upper, lower];
 });
 const LOGO_WIDTH = Math.max(...LARGE_LOGO.map(line => visibleWidth(line)));
 const LOGO_HEIGHT = LARGE_LOGO.length;
@@ -263,7 +272,7 @@ export function describeSetupSplash(): NativeNode {
 			[
 				node("spacer", { grow: 1 }),
 				logoNode(LARGE_LOGO, true),
-				text([span("O h   M y   P i", "strong")], { wrap: "none" }),
+				text([span("P a n d a C o d e", "strong")], { wrap: "none" }),
 				node("spacer", { grow: 1 }),
 				text([span(hint, "dim")], { wrap: "none" }),
 			],
@@ -275,7 +284,7 @@ export function describeSetupSplash(): NativeNode {
 /** Centered fallback for windows too small to hold the full scene. */
 function renderCompactSplash(width: number, height: number, phase: number, shine: ShineConfig): string[] {
 	const art = height >= 14 ? LARGE_LOGO : PI_LOGO;
-	const content = [...gradientLogo(art, phase, shine), "", theme.bold("O h   M y   P i")];
+	const content = [...gradientLogo(art, phase, shine), "", theme.bold("P a n d a C o d e")];
 	const start = Math.max(0, Math.floor((height - content.length) / 2));
 	const lines: string[] = [];
 	for (let y = 0; y < height; y++) {

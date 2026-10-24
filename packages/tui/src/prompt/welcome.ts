@@ -14,6 +14,9 @@ import type { Component } from "../tui";
 import { padding, replaceTabs, visibleWidth, wrapTextWithAnsi } from "../utils";
 import tipsText from "./tips.txt" with { type: "text" };
 
+/** Display name on the welcome banner; {@link APP_NAME} stays `omp` for paths and config. */
+const BRAND_NAME = "PandaCode";
+
 /** Leading marker for a tip that pitches Tern: shown only while no TSP surface
  *  is live, since a live one means the user is already in Tern. */
 const NO_TERN_TIP_MARKER = /^\[NO-TERN\]\s*/;
@@ -189,8 +192,8 @@ export function renderWelcomeTip(tip: string, width: number, phase = 0): string[
 }
 
 /**
- * The session's welcome banner. In a terminal: the gradient logo beside the
- * `omp` wordmark with the version under it (the logo alone when the lockup does
+ * The session's welcome banner. In a terminal: the gradient panda logo beside the
+ * `PandaCode` wordmark with the version under it (the logo alone when the lockup does
  * not fit) and the tip of the session (dropped below {@link TIP_MIN_COLUMNS}
  * columns). Natively: a card with the same logo, wordmark, version and tip
  * ({@link WelcomeComponent.describe}).
@@ -259,7 +262,7 @@ export class WelcomeComponent implements Component {
 					keyed(
 						col(
 							[
-								art([span(APP_NAME, "strong")], "omp.welcome.wordmark"),
+								art([span(BRAND_NAME, "strong")], "omp.welcome.wordmark"),
 								art([span(`v${this.version}`, "dim mono")], "omp.welcome.version"),
 							],
 							{ role: "omp.welcome.mark" },
@@ -408,17 +411,31 @@ export class WelcomeComponent implements Component {
 	}
 }
 
-/** Block-grid brand mark shared by the welcome and setup surfaces. */
-export const PI_LOGO = ["████████████", "   ██  ██   ", "   ██  ██   ", "   ▒▒  ██   ", "       ██   "];
+/** Half-block panda face: the brand mark shared by the welcome and setup surfaces. */
+export const PI_LOGO = [
+	"▄████▄        ▄████▄",
+	"▀████▀▄▀▀▀▀▀▀▄▀████▀",
+	"   ▄▀▀        ▀▀▄   ",
+	"  █ ▄███    ███▄ █  ",
+	" █  ███▀    ▀███  █ ",
+	" █       ██       █ ",
+	"  ▀▄    ▀  ▀    ▄▀  ",
+	"    ▀▀▄▄▄▄▄▄▄▄▀▀    ",
+];
 
 /** Columns of {@link PI_LOGO}. */
 const LOGO_WIDTH = Math.max(...PI_LOGO.map(row => row.length));
 
 /**
- * The `omp` wordmark in half-blocks, set beside {@link PI_LOGO} from its second
- * row: the `p` descends into the fourth, the version takes the fifth.
+ * The `PandaCode` wordmark in half-blocks: capitals and the `d` ascender take
+ * the first row. Set beside {@link PI_LOGO}, vertically centered with the
+ * version under it.
  */
-const WORDMARK = ["▄▀▀▄ █▀▄▀▄ █▀▀▄", "▀▄▄▀ █ █ █ █▄▄▀", "           █"];
+const WORDMARK = [
+	"█▀▀▄              █      ▄▀▀▀         █",
+	"█▄▄▀ ▄▀▀█ █▀▀▄ ▄▀▀█ ▄▀▀█ █    ▄▀▀▄ ▄▀▀█ ▄██▄",
+	"█    ▀▄▄█ █  █ ▀▄▄█ ▀▄▄█ ▀▄▄▄ ▀▄▄▀ ▀▄▄█ ▀▄▄▄",
+];
 
 /** Columns of {@link WORDMARK}. */
 const WORDMARK_WIDTH = Math.max(...WORDMARK.map(row => row.length));
@@ -432,10 +449,11 @@ const TIP_MEASURE = 72;
 /** Narrowest terminal that still shows the tip; below it the banner is the logo alone. */
 const TIP_MIN_COLUMNS = 50;
 
-/** Logo frame `logo` with the wordmark beside it and `version` (styled) under the wordmark. */
+/** Logo frame `logo` with the wordmark beside it, `version` (styled) under the wordmark, centered on the logo's rows. */
 function lockup(logo: readonly string[], version: string): string[] {
-	const beside = ["", ...WORDMARK.map(row => theme.bold(theme.fg("text", row))), version];
-	return logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index] ?? ""}`);
+	const beside = [...WORDMARK.map(row => theme.bold(theme.fg("text", row))), version];
+	const top = Math.max(0, Math.floor((logo.length - beside.length) / 2));
+	return logo.map((row, index) => `${row}${padding(LOCKUP_GAP)}${beside[index - top] ?? ""}`);
 }
 
 /**

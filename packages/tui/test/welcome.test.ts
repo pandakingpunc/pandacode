@@ -87,8 +87,8 @@ describe("WelcomeComponent", () => {
 		const expectCentered = (left: number, right: number) => expect(Math.abs(left - right)).toBeLessThanOrEqual(1);
 
 		// The lockup is one block: the logo's bar starts it, the wordmark row ends it.
-		const bar = rows.find(row => row.includes("████████████")) ?? "";
-		const word = rows.find(row => row.includes("▄▀▀▄")) ?? "";
+		const bar = rows.find(row => row.includes("▄████▄        ▄████▄")) ?? "";
+		const word = rows.find(row => row.includes("▄██▄")) ?? "";
 		expectCentered(indent(bar), columns - visibleWidth(word));
 
 		// Each tip line centers on its own.
@@ -101,22 +101,22 @@ describe("WelcomeComponent", () => {
 		const text = (columns: number) => Bun.stripANSI(new WelcomeComponent("1.0.0").render(columns).join("\n"));
 		expect(text(50)).toContain("Tip: ");
 		expect(text(49)).not.toContain("Tip: ");
-		expect(text(49)).toContain("v1.0.0");
+		expect(text(49)).toContain("▄████▄        ▄████▄");
 	});
 
 	it("sets the version under the wordmark while the lockup fits, else keeps the logo alone", () => {
 		const rows = (columns: number) => new WelcomeComponent("1.0.0").render(columns).map(row => Bun.stripANSI(row));
 
-		// The lockup needs 12 logo + 4 gap + 15 wordmark columns inside the 2-column margin.
-		const fits = rows(33);
-		const word = fits.find(row => row.includes("▄▀▀▄"));
+		// The lockup needs 20 logo + 4 gap + 44 wordmark columns inside the 2-column margin.
+		const fits = rows(70);
+		const word = fits.find(row => row.includes("▄██▄"));
 		const version = fits.find(row => row.includes("v1.0.0"));
-		expect(fits.some(row => row.includes("████████████"))).toBe(true);
-		expect(version?.indexOf("v1.0.0")).toBe(word?.indexOf("▄▀▀▄"));
+		expect(fits.some(row => row.includes("▄████▄        ▄████▄"))).toBe(true);
+		expect(version?.indexOf("v1.0.0")).toBe(word?.indexOf("█▄▄▀"));
 
-		const narrow = rows(32).join("\n");
-		expect(narrow).toContain("████████████");
-		expect(narrow).not.toContain("▄▀▀▄");
+		const narrow = rows(69).join("\n");
+		expect(narrow).toContain("▄████▄        ▄████▄");
+		expect(narrow).not.toContain("▄██▄");
 		expect(narrow).not.toContain("v1.0.0");
 	});
 });
