@@ -167,7 +167,8 @@ import type { ShakeMode } from "../session/shake-types";
 import { BUILTIN_SLASH_COMMAND_RESERVED_NAMES, buildTuiBuiltinSlashCommands } from "../slash-commands/builtin-registry";
 import { buildStaticInlineHint } from "../slash-commands/builtin-completions";
 import { SIMPLE_MODE_COMMANDS } from "../slash-commands/simple-mode";
-import { cfgSimpleMode } from "../slash-commands/simple-mode-settings";
+import { cfgShortcutBar, cfgSimpleMode } from "../slash-commands/simple-mode-settings";
+import { ShortcutBar } from "@oh-my-pi/pi-tui/prompt/shortcut-bar";
 import { formatCoarseDuration } from "@oh-my-pi/pi-tui/chrome/format";
 import { type DictationTarget, MicCursor, type SttCallbacks, STTController, type SttState } from "../stt";
 import type { SpaceHoldHandler } from "@oh-my-pi/pi-tui/space-hold";
@@ -1315,6 +1316,8 @@ export class InteractiveMode implements InteractiveModeContext {
 	attachmentChipsContainer: Container;
 	hookWidgetContainerAbove: Container;
 	hookWidgetContainerBelow: Container;
+	/** PandaCode row of everyday keys under the composer. */
+	#shortcutBar!: ShortcutBar;
 	statusLine: StatusLineComponent;
 
 	isInitialized = false;
@@ -2034,6 +2037,11 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.hookWidgetContainerAbove = new Container();
 		this.hookWidgetContainerAbove.addChild(new EditorTopGap(() => this.statusRowOccupied));
 		this.hookWidgetContainerBelow = new Container();
+		this.#shortcutBar = new ShortcutBar({
+			keybindings: this.keybindings,
+			enabled: () => cfgShortcutBar.get(this.settings),
+			busy: () => this.#isAutoSubmitBlocked(),
+		});
 		this.attachmentChipsContainer = new Container();
 		const attachmentChips = new AttachmentChipsBand(this.editor, this.ui.imageBudget, () => this.ui.requestRender());
 		this.attachmentChipsContainer.addChild(attachmentChips);
@@ -2331,6 +2339,7 @@ export class InteractiveMode implements InteractiveModeContext {
 				this.hookWidgetContainerAbove,
 				this.editorContainer,
 				this.hookWidgetContainerBelow,
+				this.#shortcutBar,
 			],
 			{
 				// Roots that collapse without new transcript output must not raise the
@@ -2354,6 +2363,9 @@ export class InteractiveMode implements InteractiveModeContext {
 				// background subagents, model cycle, progress). Their first paint can be
 				// their tallest (a restored todo list on resume), so it is never a baseline.
 				selfClearingChrome: [
+					// The shortcut bar is a constant row; as persistent chrome it raised the floor and
+					// shifted the transcript up a row after an inline report closed.
+					this.#shortcutBar,
 					this.todoContainer,
 					this.subagentContainer,
 					this.modelCycleContainer,
@@ -2376,6 +2388,7 @@ export class InteractiveMode implements InteractiveModeContext {
 					this.hookWidgetContainerAbove,
 					this.editorContainer,
 					this.hookWidgetContainerBelow,
+					this.#shortcutBar,
 				],
 			},
 		);
@@ -2631,6 +2644,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#eventBusUnsubscribers.push(
 			cfgModelRoles.listen(this.settings, () => this.#reapplyPlanModeModelOnRoleChange()),
 		);
+		this.#eventBusUnsubscribers.push(cfgShortcutBar.listen(this.settings, () => this.ui.requestRender()));
 		this.#eventBusUnsubscribers.push(
 			cfgSimpleMode.listen(this.settings, () => {
 				this.#pendingSlashCommands = this.#buildPendingSlashCommands();

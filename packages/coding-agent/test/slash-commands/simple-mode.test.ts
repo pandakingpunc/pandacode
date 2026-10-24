@@ -5,7 +5,7 @@ import {
 	lookupBuiltinSlashCommand,
 } from "@oh-my-pi/pi-coding-agent/slash-commands/builtin-registry";
 import { SIMPLE_MODE_COMMANDS } from "@oh-my-pi/pi-coding-agent/slash-commands/simple-mode";
-import { cfgSimpleMode } from "@oh-my-pi/pi-coding-agent/slash-commands/simple-mode-settings";
+import { cfgShortcutBar, cfgSimpleMode } from "@oh-my-pi/pi-coding-agent/slash-commands/simple-mode-settings";
 import type { TuiSlashCommandRuntime } from "@oh-my-pi/pi-coding-agent/slash-commands/types";
 
 describe("simple mode", () => {
@@ -15,8 +15,10 @@ describe("simple mode", () => {
 		expect(SIMPLE_MODE_COMMANDS.size).toBeLessThan(builtinNames.size / 3);
 	});
 
-	it("is on by default", () => {
-		expect(cfgSimpleMode.get(Settings.isolated())).toBe(true);
+	it("is on by default, with the shortcut bar", () => {
+		const settings = Settings.isolated();
+		expect(cfgSimpleMode.get(settings)).toBe(true);
+		expect(cfgShortcutBar.get(settings)).toBe(true);
 	});
 
 	it("/gelismis toggles the setting and reports the new mode", async () => {
