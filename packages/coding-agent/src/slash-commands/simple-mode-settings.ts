@@ -3,7 +3,8 @@
  * settings-panel order; `config/all-settings.ts` registers every domain.
  * PandaCode's own settings live here, under the "PandaCode" group.
  */
-import { register } from "../config/registry";
+import { effect, register } from "../config/registry";
+import { setUiLanguage } from "@oh-my-pi/pi-tui/locale";
 
 /** PandaCode simple mode: the slash-command picker lists only everyday builtins. */
 export const cfgSimpleMode = register({
@@ -30,3 +31,23 @@ export const cfgShortcutBar = register({
 		description: "Yazı alanının altında günlük kısayolları göster",
 	},
 });
+
+/** PandaCode interface language: Turkish by default; English restores upstream omp copy. */
+export const cfgUiLanguage = register({
+	id: "pandacode.language",
+	type: "enum",
+	values: ["tr", "en"] as const,
+	default: "tr",
+	ui: {
+		tab: "interaction",
+		group: "PandaCode",
+		label: "Arayüz Dili",
+		description: "PandaCode arayüzünün dili",
+		options: [
+			{ value: "tr", label: "Türkçe", description: "Komutlar, ipuçları ve kurulum Türkçe" },
+			{ value: "en", label: "English", description: "omp's original English interface" },
+		],
+	},
+});
+
+effect(cfgUiLanguage, setUiLanguage);

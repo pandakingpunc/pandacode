@@ -18,6 +18,7 @@ import {
 	visibleWidth,
 	wrapTextWithAnsi,
 } from "../index";
+import { localize } from "../locale";
 import { getMarkdownTheme, type ThemeColor, theme } from "../theme/theme";
 import {
 	matchesAppExternalEditor,
@@ -320,7 +321,7 @@ export class HookSelectorComponent extends OverlayPanel {
 		this.addChild(new Spacer(1));
 		const controlsHint =
 			opts?.helpText ??
-			`${editorKeys("tui.select.up", "tui.select.down")} navigate  ${formatKeyHint("enter")} select  ${editorKey("tui.select.cancel")} cancel`;
+			`${editorKeys("tui.select.up", "tui.select.down")} ${localize("navigate", "gez")}  ${formatKeyHint("enter")} ${localize("select", "seç")}  ${editorKey("tui.select.cancel")} ${localize("cancel", "vazgeç")}`;
 		this.addChild(new Text(theme.fg("dim", controlsHint), 0, 0));
 		this.addChild(new Spacer(1));
 
@@ -586,11 +587,15 @@ export class HookSelectorComponent extends OverlayPanel {
 		const selectedCount = total === 0 ? 0 : this.#menu.selectedIndex + 1;
 		const count =
 			this.#menu.query.trim() && total !== this.#options.length
-				? `${selectedCount}/${total} of ${this.#options.length}`
+				? localize(
+						`${selectedCount}/${total} of ${this.#options.length}`,
+						`${selectedCount}/${total} / ${this.#options.length}`,
+					)
 				: `${selectedCount}/${total}`;
-		if (!this.#menu.query.trim()) return theme.fg("dim", `  (${count})  Type to search`);
+		if (!this.#menu.query.trim())
+			return theme.fg("dim", `  (${count})  ${localize("Type to search", "Aramak için yaz")}`);
 		const field = this.#search.render(visibleWidth(this.#search.getValue()) + 1)[0] ?? "";
-		return `${theme.fg("dim", `  (${count})  Search: `)}${field}`;
+		return `${theme.fg("dim", `  (${count})  ${localize("Search", "Ara")}: `)}${field}`;
 	}
 
 	/** Applies the search field's value to the filter. */
@@ -860,9 +865,9 @@ export class HookSelectorComponent extends OverlayPanel {
 			this.#helpText !== undefined
 				? node("text", { spans: [span(plainText(this.#helpText), "dim")], wrap: "word" }, undefined, "hints")
 				: hintsRow([
-						actionHint(["tui.select.up", "tui.select.down"], "navigate"),
-						{ keys: ENTER_KEYS, label: "select" },
-						actionHint("tui.select.cancel", "cancel"),
+						actionHint(["tui.select.up", "tui.select.down"], localize("navigate", "gez")),
+						{ keys: ENTER_KEYS, label: localize("select", "seç") },
+						actionHint("tui.select.cancel", localize("cancel", "vazgeç")),
 					]);
 		this.#nativeStatic = { title: plainInline(this.#baseTitle, mdTheme), detail, hints };
 		return this.#nativeStatic;

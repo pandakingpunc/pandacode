@@ -6,6 +6,7 @@
  * always takes exactly one row while enabled, so the layout never jumps under it.
  */
 import { type AppKeybinding, formatKeyHint, type KeybindingsManager } from "../app-keybindings";
+import { localize } from "../locale";
 import { theme } from "../theme/theme";
 import type { Component } from "../tui";
 import { truncateToWidth } from "../utils";
@@ -19,20 +20,23 @@ export interface ShortcutBarHost {
 	busy(): boolean;
 }
 
+/** Label in both interface languages; see `../locale`. */
+type ShortcutLabel = { en: string; tr: string };
+
 /** A shortcut entry: a bound action, or a literal key for gestures with no binding. */
-type ShortcutEntry = { action: AppKeybinding; label: string } | { key: string; label: string };
+type ShortcutEntry = { action: AppKeybinding; label: ShortcutLabel } | { key: string; label: ShortcutLabel };
 
 const IDLE_SHORTCUTS: readonly ShortcutEntry[] = [
-	{ action: "app.palette.open", label: "komutlar" },
-	{ action: "app.model.select", label: "model" },
-	{ action: "app.thinking.cycle", label: "düşünme" },
-	{ action: "app.history.search", label: "geçmiş" },
-	{ action: "app.exit", label: "çıkış" },
+	{ action: "app.palette.open", label: { en: "commands", tr: "komutlar" } },
+	{ action: "app.model.select", label: { en: "model", tr: "model" } },
+	{ action: "app.thinking.cycle", label: { en: "thinking", tr: "düşünme" } },
+	{ action: "app.history.search", label: { en: "history", tr: "geçmiş" } },
+	{ action: "app.exit", label: { en: "exit", tr: "çıkış" } },
 ];
 
 const BUSY_SHORTCUTS: readonly ShortcutEntry[] = [
-	{ action: "app.interrupt", label: "durdur" },
-	{ action: "app.tools.expand", label: "ayrıntı" },
+	{ action: "app.interrupt", label: { en: "stop", tr: "durdur" } },
+	{ action: "app.tools.expand", label: { en: "details", tr: "ayrıntı" } },
 ];
 
 const SEPARATOR = "  ·  ";
@@ -57,7 +61,7 @@ export class ShortcutBar implements Component {
 				if (!bound) continue;
 				key = formatKeyHint(bound);
 			}
-			parts.push(`${theme.fg("accent", key)} ${theme.fg("dim", entry.label)}`);
+			parts.push(`${theme.fg("accent", key)} ${theme.fg("dim", localize(entry.label.en, entry.label.tr))}`);
 		}
 		const line = ` ${parts.join(theme.fg("dim", SEPARATOR))}`;
 		const cacheKey = `${width}\0${line}`;

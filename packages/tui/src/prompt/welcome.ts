@@ -13,6 +13,8 @@ import { theme } from "../theme/theme";
 import type { Component } from "../tui";
 import { padding, replaceTabs, visibleWidth, wrapTextWithAnsi } from "../utils";
 import tipsText from "./tips.txt" with { type: "text" };
+import tipsTrText from "./tips-tr.txt" with { type: "text" };
+import { getUiLanguage, localize } from "../locale";
 
 /** Display name on the welcome banner; {@link APP_NAME} stays `omp` for paths and config. */
 export const BRAND_NAME = "PandaCode";
@@ -33,6 +35,15 @@ const TIPS: readonly string[] = TIP_LINES.map(line => line.replace(NO_TERN_TIP_M
 
 /** Tips for a live TSP surface: those marked {@link NO_TERN_TIP_MARKER} dropped. */
 const TSP_TIPS: readonly string[] = TIP_LINES.filter(line => !NO_TERN_TIP_MARKER.test(line));
+
+/**
+ * PandaCode's Turkish tips (tips-tr.txt): only gestures and commands simple mode
+ * shows, with no Tern pitches, so one list serves both renderers.
+ */
+const TIPS_TR: readonly string[] = tipsTrText
+	.split("\n")
+	.map(line => line.trim())
+	.filter(line => line.length > 0);
 
 /** Trailing marker that flags a tip as a "what's new" callout. Stripped before
  *  wrapping (with any preceding whitespace) and replaced by {@link NEW_TAG_TEXT}
@@ -152,7 +163,7 @@ function tipSpans(tip: string): TspSpan[] {
  * `[]` when `width` leaves no room for a useful line.
  */
 export function renderWelcomeTip(tip: string, width: number, phase = 0): string[] {
-	const label = "Tip: ";
+	const label = localize("Tip: ", "İpucu: ");
 	if (width - visibleWidth(label) < 8) return [];
 
 	const isNew = NEW_TIP_MARKER.test(tip);
@@ -221,9 +232,10 @@ export class WelcomeComponent implements Component {
 		this.#nagRoll ??= Math.random();
 		this.#tipRoll ??= Math.random();
 		if (theme.getSymbolPreset() === "unicode" && this.#nagRoll < 0.1) {
-			return "Please use nerdfont 😭.";
+			return localize("Please use nerdfont 😭.", "Lütfen bir Nerd Font kullan 😭.");
 		}
-		return pickWeightedTip(isNativeRendering() ? TSP_TIPS : TIPS, this.#tipRoll) || undefined;
+		const tips = getUiLanguage() === "tr" ? TIPS_TR : isNativeRendering() ? TSP_TIPS : TIPS;
+		return pickWeightedTip(tips, this.#tipRoll) || undefined;
 	}
 
 	invalidate(): void {

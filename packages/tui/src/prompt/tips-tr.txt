@@ -1,0 +1,16 @@
+Yazı alanı boşken {key:ctrl+k} ile komut paletini aç, yazarak ara
+Satırın başına `/` yaz, günlük komutları gör — `/gelismis` tüm komutları açar
+{key:alt+m} ile modeli değiştir
+{key:shift+tab} ile düşünme seviyesini değiştir
+{key:ctrl+r} ile eski mesajlarında ara ve tekrar kullan
+"Devam et" yazmaktan sıkıldın mı? Sadece `.` gönder
+Mesajın `!` ile başlarsa bash olarak çalışır — `!!` çıktıyı bağlama eklemez
+Mesajın `$ ` ile başlarsa Python olarak çalışır — `$$ ` çıktıyı bağlama eklemez
+Mesajında herhangi bir yere `#` yaz: satırı ya da tüm mesajı kopyala, geri al, imleci taşı
+`/copy` ile konuşmadaki kodu ya da metni panoya al
+Bağlam doluyor mu? `/compact` konuşmayı özetleyip yer açar
+Eski bir oturuma `/resume` ile dön
+Ajan yanlış yöne mi gidiyor? {key:escape} ile durdur, sonra yönlendir
+Araç çıktılarının ayrıntısını {key:ctrl+o} ile aç/kapat
+Sade mod, kısayol çubuğu ve arayüz dili `/settings` içindeki PandaCode grubunda
+Zor bir iş mi? Mesajına `ultrathink` yaz, model daha derin düşünsün

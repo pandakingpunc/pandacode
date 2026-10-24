@@ -4,9 +4,12 @@
  * in the composer when the command needs an argument first.
  */
 import type { SlashCommand } from "@oh-my-pi/pi-tui/autocomplete";
+import { localize } from "@oh-my-pi/pi-tui/locale";
 import type { HookSelectorOption } from "@oh-my-pi/pi-tui/overlays/hook-selector";
 
-export const COMMAND_PALETTE_TITLE = "Komut paleti";
+export function commandPaletteTitle(): string {
+	return localize("Command palette", "Komut paleti");
+}
 
 /** Builtin metadata the picker entries carry beyond {@link SlashCommand}. */
 interface PaletteCommand extends SlashCommand {
@@ -20,29 +23,38 @@ export interface PaletteAction {
 	submit: boolean;
 }
 
-/** Palette label for a command; also the key {@link findPaletteCommand} resolves. */
-export function paletteLabel(command: SlashCommand): string {
-	return `/${command.name}`;
+/** Selector rows plus the command each row label stands for. */
+export interface Palette {
+	options: HookSelectorOption[];
+	commandFor(label: string): SlashCommand | undefined;
 }
 
-/** Selector rows for `commands`, first occurrence of a name winning, with live status descriptions. */
-export function buildPaletteOptions(commands: readonly SlashCommand[]): HookSelectorOption[] {
+/** Columns between the widest command name and its description. */
+const DESCRIPTION_GAP = 2;
+
+/**
+ * One row per command, first occurrence of a name winning: `/name` padded to the
+ * widest name, then its live description. Rows carry the description inline (not
+ * as a selector description) because a long list collapses descriptions away.
+ */
+export function buildPalette(commands: readonly SlashCommand[]): Palette {
+	const unique: SlashCommand[] = [];
 	const seen = new Set<string>();
-	const options: HookSelectorOption[] = [];
 	for (const command of commands) {
 		if (seen.has(command.name)) continue;
 		seen.add(command.name);
-		options.push({
-			label: paletteLabel(command),
-			description: command.getAutocompleteDescription?.() ?? command.description,
-		});
+		unique.push(command);
 	}
-	return options;
-}
-
-/** The command a palette label names, first occurrence winning like {@link buildPaletteOptions}. */
-export function findPaletteCommand(commands: readonly SlashCommand[], label: string): SlashCommand | undefined {
-	return commands.find(command => paletteLabel(command) === label);
+	const nameWidth = Math.max(0, ...unique.map(command => command.name.length + 1));
+	const byLabel = new Map<string, SlashCommand>();
+	const options = unique.map(command => {
+		const name = `/${command.name}`;
+		const description = (command.getAutocompleteDescription?.() ?? command.description ?? "").trim();
+		const label = description ? `${name.padEnd(nameWidth + DESCRIPTION_GAP)}${description}` : name;
+		byLabel.set(label, command);
+		return { label };
+	});
+	return { options, commandFor: label => byLabel.get(label) };
 }
 
 /**
@@ -54,7 +66,6 @@ export function paletteAction(command: SlashCommand): PaletteAction {
 	const needsArgument =
 		(subcommands !== undefined && subcommands.length > 0 && subcommandOptional !== true) ||
 		argumentHint?.trimStart().startsWith("<") === true;
-	return needsArgument
-		? { text: `${paletteLabel(command)} `, submit: false }
-		: { text: paletteLabel(command), submit: true };
+	const name = `/${command.name}`;
+	return needsArgument ? { text: `${name} `, submit: false } : { text: name, submit: true };
 }

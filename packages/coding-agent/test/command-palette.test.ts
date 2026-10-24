@@ -3,12 +3,7 @@ import * as path from "node:path";
 import { Agent } from "@oh-my-pi/pi-agent-core";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { resetSettingsForTest, Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import {
-	buildPaletteOptions,
-	COMMAND_PALETTE_TITLE,
-	findPaletteCommand,
-	paletteAction,
-} from "@oh-my-pi/pi-coding-agent/modes/command-palette";
+import { buildPalette, commandPaletteTitle, paletteAction } from "@oh-my-pi/pi-coding-agent/modes/command-palette";
 import { InteractiveMode } from "@oh-my-pi/pi-coding-agent/modes/interactive-mode";
 import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
@@ -37,12 +32,19 @@ describe("command palette helpers", () => {
 		{ name: "review", description: "Review a file", argumentHint: "<path>" },
 	];
 
-	it("lists each command once with its live description", () => {
-		const options = buildPaletteOptions(commands);
-		expect(options.map(option => option.label)).toEqual(["/model", "/hotkeys", "/mcp", "/fast", "/review"]);
-		expect(options[0]?.description).toBe("Model: test");
-		expect(options[1]?.description).toBe("Show all keyboard shortcuts");
-		expect(findPaletteCommand(commands, "/hotkeys")?.description).toBe("Show all keyboard shortcuts");
+	it("lists each command once on one row with its live description in a column", () => {
+		const palette = buildPalette(commands);
+		const labels = palette.options.map(option => option.label);
+		expect(labels).toEqual([
+			"/model    Model: test",
+			"/hotkeys  Show all keyboard shortcuts",
+			"/mcp      Manage MCP servers",
+			"/fast     Fast mode",
+			"/review   Review a file",
+		]);
+		expect(palette.options.every(option => option.description === undefined)).toBe(true);
+		expect(palette.commandFor(labels[1]!)?.description).toBe("Show all keyboard shortcuts");
+		expect(palette.commandFor("/nope")).toBeUndefined();
 	});
 
 	it("runs bare commands and leaves argument-taking ones in the composer", () => {
@@ -109,7 +111,10 @@ describe("command palette on a real terminal core", () => {
 
 	it("opens on an empty composer, filters by typing and runs the chosen command", async () => {
 		term.sendInput(CTRL_K);
-		await term.waitForRender(() => screen(term).some(row => row.includes(COMMAND_PALETTE_TITLE)));
+		await term.waitForRender(() => screen(term).some(row => row.includes(commandPaletteTitle())));
+		// PandaCode's default interface is Turkish: rows show the Turkish description inline.
+		expect(commandPaletteTitle()).toBe("Komut paleti");
+		expect(screen(term).some(row => row.includes("/settings") && row.includes("Ayarlar menüsünü aç"))).toBe(true);
 
 		term.sendInput("gelismis");
 		await term.waitForRender(() => screen(term).some(row => row.includes("/gelismis")));
@@ -117,15 +122,15 @@ describe("command palette on a real terminal core", () => {
 		await term.waitForRender(() => screen(term).some(row => row.includes("Gelişmiş mod")));
 
 		expect(cfgSimpleMode.get(mode.settings)).toBe(false);
-		expect(screen(term).some(row => row.includes(COMMAND_PALETTE_TITLE))).toBe(false);
+		expect(screen(term).some(row => row.includes(commandPaletteTitle()))).toBe(false);
 		expect(mode.editor.getText()).toBe("");
 	});
 
 	it("closes on Esc without touching the composer", async () => {
 		term.sendInput(CTRL_K);
-		await term.waitForRender(() => screen(term).some(row => row.includes(COMMAND_PALETTE_TITLE)));
+		await term.waitForRender(() => screen(term).some(row => row.includes(commandPaletteTitle())));
 		term.sendInput("\x1b");
-		await term.waitForRender(() => !screen(term).some(row => row.includes(COMMAND_PALETTE_TITLE)));
+		await term.waitForRender(() => !screen(term).some(row => row.includes(commandPaletteTitle())));
 		expect(mode.ui.getFocused()).toBe(mode.editor);
 	});
 
@@ -135,6 +140,6 @@ describe("command palette on a real terminal core", () => {
 		term.sendInput("\x1b[D\x1b[D\x1b[D\x1b[D\x1b[D");
 		term.sendInput(CTRL_K);
 		await term.waitForRender(() => mode.editor.getText() === "merhaba ");
-		expect(screen(term).some(row => row.includes(COMMAND_PALETTE_TITLE))).toBe(false);
+		expect(screen(term).some(row => row.includes(commandPaletteTitle()))).toBe(false);
 	});
 });

@@ -166,8 +166,9 @@ import {
 import type { ShakeMode } from "../session/shake-types";
 import { BUILTIN_SLASH_COMMAND_RESERVED_NAMES, buildTuiBuiltinSlashCommands } from "../slash-commands/builtin-registry";
 import { buildStaticInlineHint } from "../slash-commands/builtin-completions";
-import { SIMPLE_MODE_COMMANDS } from "../slash-commands/simple-mode";
-import { cfgShortcutBar, cfgSimpleMode } from "../slash-commands/simple-mode-settings";
+import { localizeSimpleCommandTr, SIMPLE_MODE_COMMANDS } from "../slash-commands/simple-mode";
+import { getUiLanguage } from "@oh-my-pi/pi-tui/locale";
+import { cfgShortcutBar, cfgSimpleMode, cfgUiLanguage } from "../slash-commands/simple-mode-settings";
 import { ShortcutBar } from "@oh-my-pi/pi-tui/prompt/shortcut-bar";
 import { formatCoarseDuration } from "@oh-my-pi/pi-tui/chrome/format";
 import { type DictationTarget, MicCursor, type SttCallbacks, STTController, type SttState } from "../stt";
@@ -264,7 +265,7 @@ import type { EvalExecutionComponent } from "@oh-my-pi/pi-tui/chat/eval-executio
 import type { HookEditorComponent } from "@oh-my-pi/pi-tui/overlays/hook-editor";
 import type { HookInputComponent } from "@oh-my-pi/pi-tui/overlays/hook-input";
 import { HookSelectorComponent, type HookSelectorSlider } from "@oh-my-pi/pi-tui/overlays/hook-selector";
-import { buildPaletteOptions, COMMAND_PALETTE_TITLE, findPaletteCommand, paletteAction } from "./command-palette";
+import { buildPalette, commandPaletteTitle, paletteAction } from "./command-palette";
 import { type PlanReviewAnnotationState, PlanReviewOverlay } from "@oh-my-pi/pi-tui/overlays/plan-review-overlay";
 import { PlanSaveOverlay, type PlanSaveOverlayResult } from "@oh-my-pi/pi-tui/overlays/plan-save-overlay";
 import { ServedModelTracker } from "@oh-my-pi/pi-tui/chat/served-model-marker";
@@ -2646,13 +2647,14 @@ export class InteractiveMode implements InteractiveModeContext {
 			cfgModelRoles.listen(this.settings, () => this.#reapplyPlanModeModelOnRoleChange()),
 		);
 		this.#eventBusUnsubscribers.push(cfgShortcutBar.listen(this.settings, () => this.ui.requestRender()));
-		this.#eventBusUnsubscribers.push(
-			cfgSimpleMode.listen(this.settings, () => {
-				this.#pendingSlashCommands = this.#buildPendingSlashCommands();
-				this.#rebuildSlashCommandAutocomplete(this.sessionManager.getCwd());
-				this.ui.requestRender();
-			}),
-		);
+		const rebuildPicker = () => {
+			this.#pendingSlashCommands = this.#buildPendingSlashCommands();
+			this.#rebuildSlashCommandAutocomplete(this.sessionManager.getCwd());
+			this.ui.requestRender();
+		};
+		this.#eventBusUnsubscribers.push(cfgSimpleMode.listen(this.settings, rebuildPicker));
+		// The language effect is bound at settings init, ahead of this listener, so the rebuild reads the new language.
+		this.#eventBusUnsubscribers.push(cfgUiLanguage.listen(this.settings, rebuildPicker));
 		this.#eventBusUnsubscribers.push(
 			this.session.subscribeCommandMetadataChanged(() => {
 				// Skills/commands rediscovery (live `skills.*`/`commands.*`/extension edits,
@@ -2786,10 +2788,12 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#slashIconPreset = theme.getSymbolPreset();
 		// Simple mode hides everyday-irrelevant builtins from the picker; they still run when typed.
 		const simpleMode = cfgSimpleMode.get(this.settings);
+		const turkish = getUiLanguage() === "tr";
 		const builtinCommands: SlashCommand[] = buildTuiBuiltinSlashCommands({
 			ctx: this,
 		})
 			.filter(cmd => !simpleMode || SIMPLE_MODE_COMMANDS.has(cmd.name))
+			.map(cmd => (turkish ? localizeSimpleCommandTr(cmd) : cmd))
 			.map(cmd => ({
 				...cmd,
 				icon: getSlashCommandTypeIcon(cmd.icon ?? "action"),
@@ -8477,14 +8481,14 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	/** PandaCode Ctrl+K palette over the picker's slash commands; see `./command-palette`. */
 	showCommandPalette(): void {
-		const commands = this.#pendingSlashCommands;
+		const palette = buildPalette(this.#pendingSlashCommands);
 		this.#selectorController.showSelector(done => {
 			const selector = new HookSelectorComponent(
-				COMMAND_PALETTE_TITLE,
-				buildPaletteOptions(commands),
+				commandPaletteTitle(),
+				palette.options,
 				label => {
 					done();
-					const command = findPaletteCommand(commands, label);
+					const command = palette.commandFor(label);
 					if (command) {
 						const action = paletteAction(command);
 						this.editor.setText(action.text);

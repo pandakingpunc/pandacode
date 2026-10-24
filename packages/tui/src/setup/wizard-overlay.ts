@@ -6,6 +6,7 @@ import { centerLine, padding } from "../utils";
 import { padToWidth } from "../render/utils";
 import { routeSgrMouseInput, type SgrMouseEvent } from "../mouse";
 import { BRAND_NAME, gradientLogo, logoNode, PI_LOGO } from "../prompt/welcome";
+import { localize } from "../locale";
 import { theme } from "../theme/theme";
 import { col, node, span, text } from "../native/describe";
 import type { NativeNode, NativeUiEvent } from "../native/node";
@@ -40,7 +41,31 @@ const DONE_NODE = col([]);
 
 function sceneFooterHint(): string {
 	const navKeys = editorKeys("tui.select.up", "tui.select.down");
-	return `${navKeys} select · ${editorKey("tui.select.confirm")} confirm · ${editorKey("tui.select.cancel")} skip · ${formatKeyHint("ctrl+c")} exit setup`;
+	return localize(
+		`${navKeys} select · ${editorKey("tui.select.confirm")} confirm · ${editorKey("tui.select.cancel")} skip · ${formatKeyHint("ctrl+c")} exit setup`,
+		`${navKeys} seç · ${editorKey("tui.select.confirm")} onayla · ${editorKey("tui.select.cancel")} atla · ${formatKeyHint("ctrl+c")} kurulumdan çık`,
+	);
+}
+
+/** Turkish setup scene titles by scene id. */
+const SCENE_TITLES_TR: Readonly<Record<string, string>> = {
+	providers: "Sağlayıcılarına giriş yap",
+	model: "Varsayılan modelini seç",
+	"glyph-mode": "Sembol modunu seç",
+	"composer-shape": "Yazı alanı şeklini seç",
+	theme: "Tema seç",
+};
+
+/** Scene heading in the interface language; a title a live scene sets itself passes through. */
+function sceneTitle(activeTitle: string | undefined, scene: { id: string; title: string } | undefined): string {
+	const title = activeTitle ?? scene?.title;
+	if (title === undefined) return localize("Setup", "Kurulum");
+	return scene && title === scene.title ? localize(title, SCENE_TITLES_TR[scene.id] ?? title) : title;
+}
+
+/** "Setup step n of m" in the interface language. */
+function setupStepLabel(index: number, total: number): string {
+	return localize(`Setup step ${index + 1} of ${total}`, `Kurulum adımı ${index + 1} / ${total}`);
 }
 
 function indentLine(line: string, width: number, indent: number): string {
@@ -250,7 +275,7 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 	#describeScene(): NativeNode {
 		const scene = this.scenes[this.#sceneIndex];
 		const active = this.#activeScene;
-		const title = active?.title ?? scene?.title ?? "Setup";
+		const title = sceneTitle(active?.title, scene);
 		const subtitle = active?.subtitle;
 		const footer = sceneFooterHint();
 		return this.#nativeScene.get([this.#sceneIndex, this.scenes.length, active, title, subtitle, footer], () => {
@@ -262,7 +287,7 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 						[
 							logoNode(PI_LOGO, false),
 							text([span(BRAND_NAME, "accent strong")], { wrap: "none" }),
-							text([span(`Setup step ${this.#sceneIndex + 1} of ${this.scenes.length}`, "muted")], {
+							text([span(setupStepLabel(this.#sceneIndex, this.scenes.length), "muted")], {
 								wrap: "none",
 							}),
 						],
@@ -280,7 +305,7 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 
 	#renderScene(width: number, height: number): string[] {
 		const scene = this.scenes[this.#sceneIndex];
-		const title = this.#activeScene?.title ?? scene?.title ?? "Setup";
+		const title = sceneTitle(this.#activeScene?.title, scene);
 		const subtitle = this.#activeScene?.subtitle;
 		const contentWidth = Math.max(MIN_CONTENT_WIDTH, width - SCENE_MARGIN_X * 2);
 		const logo = height - PI_LOGO.length >= MIN_ROWS_BELOW_LOGO ? gradientLogo(PI_LOGO, 0) : [];
@@ -288,7 +313,7 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 			"",
 			...logo.map(line => centerLine(line, width)),
 			centerLine(theme.bold(theme.fg("accent", BRAND_NAME)), width),
-			centerLine(theme.fg("muted", `Setup step ${this.#sceneIndex + 1} of ${this.scenes.length}`), width),
+			centerLine(theme.fg("muted", setupStepLabel(this.#sceneIndex, this.scenes.length)), width),
 			"",
 			indentLine(theme.bold(title), width, SCENE_MARGIN_X),
 		];

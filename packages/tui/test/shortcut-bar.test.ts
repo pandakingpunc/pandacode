@@ -1,7 +1,8 @@
-import { beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { stripVTControlCharacters } from "node:util";
 import { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { ShortcutBar, type ShortcutBarHost } from "@oh-my-pi/pi-tui/prompt/shortcut-bar";
+import { setUiLanguage } from "@oh-my-pi/pi-tui/locale";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 import { visibleWidth } from "@oh-my-pi/pi-tui";
 
@@ -24,6 +25,22 @@ function text(bar: ShortcutBar, width = 200): string {
 describe("ShortcutBar", () => {
 	beforeAll(async () => {
 		await initTheme(false);
+		setUiLanguage("tr");
+	});
+
+	afterAll(() => {
+		setUiLanguage("en");
+	});
+
+	it("speaks English when the interface is English", () => {
+		setUiLanguage("en");
+		try {
+			const rendered = text(new ShortcutBar(host()));
+			expect(rendered).toContain("commands");
+			expect(rendered).not.toContain("komutlar");
+		} finally {
+			setUiLanguage("tr");
+		}
 	});
 
 	it("lists the everyday gestures while idle", () => {
