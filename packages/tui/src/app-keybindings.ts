@@ -62,6 +62,7 @@ interface AppKeybindings {
 	"app.tree.nextBranch": true;
 	"app.plan.toggle": true;
 	"app.history.search": true;
+	"app.palette.open": true;
 	"app.stt.pushToTalk": true;
 	"app.stt.toggle": true;
 	"app.live.toggle": true;
@@ -249,6 +250,11 @@ export const KEYBINDINGS = {
 	"app.history.search": {
 		defaultKeys: "ctrl+r",
 		description: "Search history",
+	},
+	// PandaCode: shares ctrl+k with delete-to-line-end; the palette only takes it on an empty composer.
+	"app.palette.open": {
+		defaultKeys: "ctrl+k",
+		description: "Open the command palette (empty composer)",
 	},
 	"app.stt.pushToTalk": {
 		defaultKeys: "space",

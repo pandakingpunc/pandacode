@@ -394,6 +394,18 @@ export class InputController {
 					this.ctx.showHistorySearch();
 					return { consume: true };
 				}
+				// PandaCode palette: only on an empty main composer, so ctrl+k still deletes to line end in a draft.
+				if (this.ctx.keybindings.matches(data, "app.palette.open")) {
+					if (
+						this.ctx.ui.hasOverlay() ||
+						this.ctx.ui.getFocused() !== this.ctx.editor ||
+						this.ctx.editor.getText() !== ""
+					) {
+						return undefined;
+					}
+					this.ctx.showCommandPalette();
+					return { consume: true };
+				}
 				if (this.ctx.keybindings.matches(data, "app.editor.external")) {
 					if (this.ctx.ui.hasOverlay()) return undefined;
 					const focused = this.ctx.ui.getFocused();

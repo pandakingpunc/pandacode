@@ -263,7 +263,8 @@ import { ErrorBannerComponent } from "@oh-my-pi/pi-tui/overlays/error-banner";
 import type { EvalExecutionComponent } from "@oh-my-pi/pi-tui/chat/eval-execution";
 import type { HookEditorComponent } from "@oh-my-pi/pi-tui/overlays/hook-editor";
 import type { HookInputComponent } from "@oh-my-pi/pi-tui/overlays/hook-input";
-import type { HookSelectorComponent, HookSelectorSlider } from "@oh-my-pi/pi-tui/overlays/hook-selector";
+import { HookSelectorComponent, type HookSelectorSlider } from "@oh-my-pi/pi-tui/overlays/hook-selector";
+import { buildPaletteOptions, COMMAND_PALETTE_TITLE, findPaletteCommand, paletteAction } from "./command-palette";
 import { type PlanReviewAnnotationState, PlanReviewOverlay } from "@oh-my-pi/pi-tui/overlays/plan-review-overlay";
 import { PlanSaveOverlay, type PlanSaveOverlayResult } from "@oh-my-pi/pi-tui/overlays/plan-save-overlay";
 import { ServedModelTracker } from "@oh-my-pi/pi-tui/chat/served-model-marker";
@@ -8472,6 +8473,33 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	showHistorySearch(): void {
 		this.#selectorController.showHistorySearch();
+	}
+
+	/** PandaCode Ctrl+K palette over the picker's slash commands; see `./command-palette`. */
+	showCommandPalette(): void {
+		const commands = this.#pendingSlashCommands;
+		this.#selectorController.showSelector(done => {
+			const selector = new HookSelectorComponent(
+				COMMAND_PALETTE_TITLE,
+				buildPaletteOptions(commands),
+				label => {
+					done();
+					const command = findPaletteCommand(commands, label);
+					if (command) {
+						const action = paletteAction(command);
+						this.editor.setText(action.text);
+						if (action.submit) this.editor.submit();
+					}
+					this.ui.requestRender();
+				},
+				() => {
+					done();
+					this.ui.requestRender();
+				},
+				{ tui: this.ui, maxVisible: Math.max(4, Math.min(15, this.ui.terminal.rows - 12)) },
+			);
+			return { component: selector, focus: selector };
+		});
 	}
 
 	showExtensionsDashboard(): void {

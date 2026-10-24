@@ -512,6 +512,7 @@ export interface InteractiveModeContext {
 	showUsageDashboard(reports: UsageReport[]): void;
 	showAdvisorConfigure(): void;
 	showHistorySearch(): void;
+	showCommandPalette(): void;
 	showExtensionsDashboard(): void;
 	showAgentsDashboard(): void;
 	/** Open the fullscreen git UI, optionally pinned to a revision (`/git <rev>`). */

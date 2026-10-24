@@ -23,7 +23,7 @@ export interface ShortcutBarHost {
 type ShortcutEntry = { action: AppKeybinding; label: string } | { key: string; label: string };
 
 const IDLE_SHORTCUTS: readonly ShortcutEntry[] = [
-	{ key: "/", label: "komutlar" },
+	{ action: "app.palette.open", label: "komutlar" },
 	{ action: "app.model.select", label: "model" },
 	{ action: "app.thinking.cycle", label: "düşünme" },
 	{ action: "app.history.search", label: "geçmiş" },
