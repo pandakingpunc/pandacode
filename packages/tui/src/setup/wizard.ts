@@ -22,6 +22,17 @@ export const ALL_SCENES = [
 	themeSetupScene,
 ] as const satisfies readonly SetupScene[];
 
+/**
+ * PandaCode onboarding: sign-in, model and theme. Glyph mode and composer shape
+ * keep their defaults and stay one `/settings` away. A run still records
+ * {@link CURRENT_SETUP_VERSION}, so the skipped scenes never reopen on their own.
+ */
+export const PANDACODE_SCENES = [
+	providersSetupScene,
+	modelSetupScene,
+	themeSetupScene,
+] as const satisfies readonly SetupScene[];
+
 /** Environment and invocation gates for onboarding scene selection. */
 export interface SetupSceneSelectionOptions {
 	resuming?: boolean;

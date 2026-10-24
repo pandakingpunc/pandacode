@@ -677,7 +677,7 @@ async function runInteractiveMode(
 				? await import("./modes/setup")
 				: undefined;
 		setupScenes = setupWizard
-			? await setupWizard.selectSetupScenes(storedSetupVersion, setupWizard.ALL_SCENES, mode, {
+			? await setupWizard.selectSetupScenes(storedSetupVersion, setupWizard.PANDACODE_SCENES, mode, {
 					resuming,
 					isTTY: process.stdin.isTTY && process.stdout.isTTY,
 					setupWizardEnabled: cfgStartupSetupWizard.get(settings),

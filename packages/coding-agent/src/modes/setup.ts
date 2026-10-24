@@ -4,6 +4,7 @@ import type { SetupHost, SetupScene } from "@oh-my-pi/pi-tui/setup/scenes/types"
 import {
 	ALL_SCENES,
 	CURRENT_SETUP_VERSION,
+	PANDACODE_SCENES,
 	runSetupWizard as runWizard,
 	type RunSetupWizardOptions,
 	selectSetupScenes as selectScenes,
@@ -25,7 +26,7 @@ import {
 } from "./settings";
 import { cfgDisabledProviders, cfgModelRoleStorage } from "../config/model-settings";
 
-export { ALL_SCENES, CURRENT_SETUP_VERSION };
+export { ALL_SCENES, CURRENT_SETUP_VERSION, PANDACODE_SCENES };
 export type { SetupScene, SetupSceneHost } from "@oh-my-pi/pi-tui/setup/scenes/types";
 export { runStartupSplash } from "@oh-my-pi/pi-tui/setup/startup-splash";
 
@@ -111,7 +112,7 @@ export function selectSetupScenes(
 /** Run setup with application-owned persistence and provider effects. */
 export function runSetupWizard(
 	ctx: InteractiveModeContext,
-	scenes: readonly SetupScene[] = ALL_SCENES,
+	scenes: readonly SetupScene[] = PANDACODE_SCENES,
 	options: RunSetupWizardOptions = {},
 ): Promise<void> {
 	return runWizard(createSetupHost(ctx), scenes, options);
