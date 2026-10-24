@@ -275,7 +275,8 @@ describe("composer welcome native-history resize", () => {
 	});
 	it("recomposes the retired welcome header at the settled width on a rebuild resize", async () => {
 		vi.spyOn(Math, "random").mockReturnValue(0.5);
-		const terminal = new VirtualTerminal(60, 12);
+		// 72 columns: the narrowest width where the PandaCode lockup (68 columns) still shows the version.
+		const terminal = new VirtualTerminal(72, 12);
 		const scheduler = new VirtualRenderScheduler();
 		const composer = new Composer({
 			terminal,
@@ -290,9 +291,9 @@ describe("composer welcome native-history resize", () => {
 		const narrow = plainBuffer(terminal);
 		expect(countRows(narrow, "vtest")).toBe(1);
 		const narrowWidth = Math.max(...narrow.map(row => visibleWidth(row)));
-		expect(narrowWidth).toBeLessThan(60);
+		expect(narrowWidth).toBeLessThan(72);
 
-		terminal.resize(100, 12);
+		terminal.resize(110, 12);
 		// The refresh-capable settle waits out the 400 ms drag-end window plus
 		// the 40 ms drain horizon, then commits the recomposed header in the
 		// same transaction.
@@ -301,7 +302,7 @@ describe("composer welcome native-history resize", () => {
 		const rebuilt = plainBuffer(terminal);
 		expect(countRows(rebuilt, "vtest")).toBe(1);
 		// A hard-wrap reflow can never widen a committed row; only a recompose at
-		// the settled width re-centers the banner in 100 columns.
+		// the settled width re-centers the banner in 110 columns.
 		expect(Math.max(...rebuilt.map(row => visibleWidth(row)))).toBeGreaterThan(narrowWidth);
 		composer.ui.stop();
 	});

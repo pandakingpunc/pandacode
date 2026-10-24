@@ -114,7 +114,8 @@ describe("InteractiveMode prompt-template autocomplete (#2462)", () => {
 				},
 			}),
 			sessionManager: manager,
-			settings: Settings.isolated({ "compaction.enabled": false }),
+			// PandaCode simple mode hides most builtins; these tests cover the full picker.
+			settings: Settings.isolated({ "compaction.enabled": false, "pandacode.simpleMode": false }),
 			modelRegistry: registry,
 			toolRegistry: new Map(tools.map(tool => [tool.name, tool])),
 			promptTemplates: templates,
