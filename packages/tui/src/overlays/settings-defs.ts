@@ -67,6 +67,7 @@ export const TAB_GROUPS: Record<SettingTab, readonly string[]> = {
 	appearance: ["Theme", "Composer", "Status Line", "Display", "Images"],
 	model: ["Thinking", "Sampling", "Prompt", "Retry & Fallback", "Advisor", "Prewalk", "Vision"],
 	interaction: [
+		"PandaCode",
 		"Input",
 		"Approvals",
 		"Notifications",

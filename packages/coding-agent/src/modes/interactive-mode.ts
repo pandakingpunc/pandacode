@@ -166,6 +166,8 @@ import {
 import type { ShakeMode } from "../session/shake-types";
 import { BUILTIN_SLASH_COMMAND_RESERVED_NAMES, buildTuiBuiltinSlashCommands } from "../slash-commands/builtin-registry";
 import { buildStaticInlineHint } from "../slash-commands/builtin-completions";
+import { SIMPLE_MODE_COMMANDS } from "../slash-commands/simple-mode";
+import { cfgSimpleMode } from "../slash-commands/simple-mode-settings";
 import { formatCoarseDuration } from "@oh-my-pi/pi-tui/chrome/format";
 import { type DictationTarget, MicCursor, type SttCallbacks, STTController, type SttState } from "../stt";
 import type { SpaceHoldHandler } from "@oh-my-pi/pi-tui/space-hold";
@@ -2630,6 +2632,13 @@ export class InteractiveMode implements InteractiveModeContext {
 			cfgModelRoles.listen(this.settings, () => this.#reapplyPlanModeModelOnRoleChange()),
 		);
 		this.#eventBusUnsubscribers.push(
+			cfgSimpleMode.listen(this.settings, () => {
+				this.#pendingSlashCommands = this.#buildPendingSlashCommands();
+				this.#rebuildSlashCommandAutocomplete(this.sessionManager.getCwd());
+				this.ui.requestRender();
+			}),
+		);
+		this.#eventBusUnsubscribers.push(
 			this.session.subscribeCommandMetadataChanged(() => {
 				// Skills/commands rediscovery (live `skills.*`/`commands.*`/extension edits,
 				// `/move`, manage_skill, MCP prompts) lands here; rebuild the picker from session state.
@@ -2760,13 +2769,17 @@ export class InteractiveMode implements InteractiveModeContext {
 	/** Builtin, extension, custom, and `/skill:<name>` commands derived from live session state. */
 	#buildPendingSlashCommands(): SlashCommand[] {
 		this.#slashIconPreset = theme.getSymbolPreset();
+		// Simple mode hides everyday-irrelevant builtins from the picker; they still run when typed.
+		const simpleMode = cfgSimpleMode.get(this.settings);
 		const builtinCommands: SlashCommand[] = buildTuiBuiltinSlashCommands({
 			ctx: this,
-		}).map(cmd => ({
-			...cmd,
-			icon: getSlashCommandTypeIcon(cmd.icon ?? "action"),
-			iconName: cmd.icon ?? "action",
-		}));
+		})
+			.filter(cmd => !simpleMode || SIMPLE_MODE_COMMANDS.has(cmd.name))
+			.map(cmd => ({
+				...cmd,
+				icon: getSlashCommandTypeIcon(cmd.icon ?? "action"),
+				iconName: cmd.icon ?? "action",
+			}));
 
 		const hookCommands: SlashCommand[] = (
 			this.session.extensionRunner?.getRegisteredCommands(BUILTIN_SLASH_COMMAND_RESERVED_NAMES) ?? []
