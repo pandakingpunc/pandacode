@@ -5,8 +5,7 @@ import { matchesKey } from "../keys";
 import { centerLine, padding } from "../utils";
 import { padToWidth } from "../render/utils";
 import { routeSgrMouseInput, type SgrMouseEvent } from "../mouse";
-import { APP_NAME } from "@oh-my-pi/pi-utils";
-import { gradientLogo, logoNode, PI_LOGO } from "../prompt/welcome";
+import { BRAND_NAME, gradientLogo, logoNode, PI_LOGO } from "../prompt/welcome";
 import { theme } from "../theme/theme";
 import { col, node, span, text } from "../native/describe";
 import type { NativeNode, NativeUiEvent } from "../native/node";
@@ -21,6 +20,11 @@ type WizardPhase = "splash" | "transition" | "scene" | "outro" | "done";
 
 const SCENE_MARGIN_X = 4;
 const MIN_CONTENT_WIDTH = 20;
+/**
+ * Scene rows the header left on a 24-row terminal under the original 5-row logo.
+ * The panda logo is 8 rows, so it shows only when the scene still keeps these rows.
+ */
+const MIN_ROWS_BELOW_LOGO = 19;
 /** Cross-dissolve duration from the splash into the first scene. */
 const SCENE_TRANSITION_MS = 420;
 
@@ -257,7 +261,7 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 					col(
 						[
 							logoNode(PI_LOGO, false),
-							text([span(APP_NAME, "accent strong")], { wrap: "none" }),
+							text([span(BRAND_NAME, "accent strong")], { wrap: "none" }),
 							text([span(`Setup step ${this.#sceneIndex + 1} of ${this.scenes.length}`, "muted")], {
 								wrap: "none",
 							}),
@@ -279,11 +283,11 @@ export class SetupWizardComponent implements Component, OverlayFocusOwner {
 		const title = this.#activeScene?.title ?? scene?.title ?? "Setup";
 		const subtitle = this.#activeScene?.subtitle;
 		const contentWidth = Math.max(MIN_CONTENT_WIDTH, width - SCENE_MARGIN_X * 2);
-		const logo = gradientLogo(PI_LOGO, 0);
+		const logo = height - PI_LOGO.length >= MIN_ROWS_BELOW_LOGO ? gradientLogo(PI_LOGO, 0) : [];
 		const header = [
 			"",
 			...logo.map(line => centerLine(line, width)),
-			centerLine(theme.bold(theme.fg("accent", APP_NAME)), width),
+			centerLine(theme.bold(theme.fg("accent", BRAND_NAME)), width),
 			centerLine(theme.fg("muted", `Setup step ${this.#sceneIndex + 1} of ${this.scenes.length}`), width),
 			"",
 			indentLine(theme.bold(title), width, SCENE_MARGIN_X),

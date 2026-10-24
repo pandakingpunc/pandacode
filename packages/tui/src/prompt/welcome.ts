@@ -15,7 +15,7 @@ import { padding, replaceTabs, visibleWidth, wrapTextWithAnsi } from "../utils";
 import tipsText from "./tips.txt" with { type: "text" };
 
 /** Display name on the welcome banner; {@link APP_NAME} stays `omp` for paths and config. */
-const BRAND_NAME = "PandaCode";
+export const BRAND_NAME = "PandaCode";
 
 /** Leading marker for a tip that pitches Tern: shown only while no TSP surface
  *  is live, since a live one means the user is already in Tern. */
