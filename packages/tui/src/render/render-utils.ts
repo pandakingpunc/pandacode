@@ -13,6 +13,7 @@ import { expandWindowsLongPath, getWindowsShortPath } from "@oh-my-pi/pi-natives
 import { pluralize, sanitizeText } from "@oh-my-pi/pi-utils";
 import { formatKeyHint, type KeyId } from "../app-keybindings";
 import { getKeybindings } from "../keybindings";
+import { localize } from "../locale";
 import type { Theme } from "../theme/theme";
 import type { Component } from "../tui";
 import { replaceTabs, sliceByColumn, truncateToWidth, visibleWidth, wrapTextWithAnsi } from "../utils";
@@ -117,6 +118,20 @@ export const PREVIEW_LIMITS = {
 
 /** Default number of terminal output rows shown before expansion. */
 export const DEFAULT_TERMINAL_PREVIEW_LINES = 10;
+
+let toolPreviewLines: number = DEFAULT_TERMINAL_PREVIEW_LINES;
+
+/**
+ * PandaCode: rows a folded tool card's output shows. The coding agent's
+ * `pandacode.toolOutput` setting drives it; the TUI default stays upstream's.
+ */
+export function setToolPreviewLines(lines: number): void {
+	toolPreviewLines = lines;
+}
+
+export function getToolPreviewLines(): number {
+	return toolPreviewLines;
+}
 
 /** Match a Markdown fenced-code opener and capture its indentation and marker. */
 export const FENCE_RE = /^( {0,3})([`~]{3,})/;
@@ -320,7 +335,7 @@ export function formatStatusIcon(status: ToolUIStatus, theme: Theme, spinnerFram
 export function formatExpandHint(theme: Theme, expanded?: boolean, hasMore?: boolean): string {
 	if (expanded) return "";
 	if (hasMore === false) return "";
-	return theme.fg("dim", wrapBrackets(`${expandKeyHint()}: Expand`, theme));
+	return theme.fg("dim", wrapBrackets(`${expandKeyHint()}: ${localize("Expand", "Aç")}`, theme));
 }
 
 /**
@@ -383,7 +398,8 @@ export function capPreviewLines(
 	const visible = max <= 1 ? [] : lines.slice(lines.length - (max - 1));
 	const hidden = lines.length - visible.length;
 	const hint = options.expandHint === false ? "" : formatExpandHint(theme, false, true);
-	const marker = `… ${hidden} earlier ${pluralize("line", hidden)}${hint ? ` ${hint}` : ""}`;
+	const label = localize(`… ${hidden} earlier ${pluralize("line", hidden)}`, `… ${hidden} satır yukarıda`);
+	const marker = `${label}${hint ? ` ${hint}` : ""}`;
 	return [`${options.prefix ?? ""}${theme.fg("dim", marker)}`, ...visible];
 }
 

@@ -15,6 +15,7 @@ omp, yüzden fazla komutu olan güçlü bir kodlama ajanı. PandaCode onun motor
 | **Sade mod** | `/` listesinde tüm komutlar yerine 16 günlük komut görünür. Hiçbir şey silinmedi: omp'nin bütün komutları yazınca yine çalışır; `/gelismis` (ya da `/advanced`) tam listeyi açıp kapatır. |
 | **Komut paleti** | Yazı alanı boşken <kbd>Ctrl</kbd>+<kbd>K</kbd>, komutları açıklamalarıyla birlikte aranabilir bir listede açar. Yazı alanında metin varken <kbd>Ctrl</kbd>+<kbd>K</kbd> eskisi gibi satır sonuna kadar siler. |
 | **Kısayol çubuğu** | Yazı alanının altındaki sönük satır o an işine yarayan tuşları gösterir: boştayken komutlar, model, düşünme seviyesi, geçmiş ve çıkış; ajan çalışırken durdurma ve ayrıntı. |
+| **Katlı araç çıktıları** | Kabuk ve kod çalıştırma kartları çıktının yalnız son 5 satırını gösterir (düzenleme diff'leri kendi önizlemesini korur); <kbd>Ctrl</kbd>+<kbd>O</kbd> hepsini açar. `/settings` → PandaCode → *Araç Çıktıları* → *Normal* omp'nin 10 satırına döner. |
 | **Türkçe arayüz** | Komut açıklamaları, ipuçları, kısayol çubuğu, seçiciler ve kurulum başlıkları varsayılan olarak Türkçe. `/settings` → PandaCode → *Arayüz Dili* ile Türkçe/İngilizce arasında geçebilirsin. |
 | **3 adımlı kurulum** | İlk açılışta yalnız giriş, model ve tema sorulur. |
 | **`pandacode` komutu** | Bu klasörü her yerden çalıştıran bir başlatıcı. Kurulu bir `omp` varsa ona dokunmaz. |

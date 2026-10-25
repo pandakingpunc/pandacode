@@ -1,11 +1,21 @@
-import { describe, expect, it, vi } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/input-controller";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { cfgDisplayHideToolActivity } from "@oh-my-pi/pi-coding-agent/modes/settings";
+import { setUiLanguage } from "@oh-my-pi/pi-tui/locale";
 
 describe("InputController tool output expansion", () => {
+	// Another test file may leave the PandaCode language on Turkish.
+	beforeEach(() => {
+		setUiLanguage("en");
+	});
+
+	afterEach(() => {
+		setUiLanguage("en");
+	});
+
 	it("expands children and forces a full repaint so every live block re-renders", () => {
 		const expandable = { setExpanded: vi.fn() };
 		const inert = { render: vi.fn(() => []) };
@@ -27,6 +37,21 @@ describe("InputController tool output expansion", () => {
 		expect(requestRender).toHaveBeenCalledTimes(1);
 		expect(requestRender).toHaveBeenCalledWith(true);
 		expect(showStatus).toHaveBeenCalledWith("Tool output expansion: enabled");
+	});
+
+	it("reports the PandaCode folding state in Turkish", () => {
+		setUiLanguage("tr");
+		const showStatus = vi.fn();
+		const ctx = {
+			toolOutputExpanded: true,
+			chatContainer: { children: [] },
+			ui: { requestRender: vi.fn() },
+			showStatus,
+		} as unknown as InteractiveModeContext;
+
+		new InputController(ctx).toggleToolOutputExpansion();
+
+		expect(showStatus).toHaveBeenCalledWith("Araç çıktıları: katlı");
 	});
 
 	it("does not expand hidden tool activity and explains why", () => {

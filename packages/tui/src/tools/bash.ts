@@ -4,6 +4,7 @@ import { highlightCode, type Theme } from "../theme/theme";
 import { renderStatusLine } from "../render/status-line";
 import { framedToolCard, type ToolCardSnapshot } from "../render/tool-card";
 import { formatOutputPaneLines } from "../render/output-pane";
+import { localize } from "../locale";
 import {
 	capPreviewLines,
 	DEFAULT_TERMINAL_PREVIEW_LINES,
@@ -352,23 +353,23 @@ function bashStatsParts(
 		if (service.pid !== undefined) statsParts.push(`PID: ${service.pid}`);
 	}
 	if (wallTimeMs !== undefined) {
-		statsParts.push(`Wall: ${formatWallTimeSeconds(wallTimeMs)}s`);
+		statsParts.push(`${localize("Wall", "Süre")}: ${formatWallTimeSeconds(wallTimeMs)}s`);
 	}
 	if (timeoutDisabled) {
-		statsParts.push("Timeout: disabled");
+		statsParts.push(localize("Timeout: disabled", "Zaman aşımı: kapalı"));
 	}
 	if (typeof timeoutSeconds === "number") {
 		statsParts.push(
 			requestedTimeoutSeconds !== undefined && requestedTimeoutSeconds !== timeoutSeconds
 				? `Timeout: ${timeoutSeconds}s (requested ${requestedTimeoutSeconds}s clamped)`
-				: `Timeout: ${timeoutSeconds}s`,
+				: `${localize("Timeout", "Zaman aşımı")}: ${timeoutSeconds}s`,
 		);
 	}
 	if (artifactId) {
 		statsParts.push(`Artifact: ${artifactId}`);
 	}
 	if (isError && typeof details?.exitCode === "number") {
-		statsParts.push(`Exit: ${details.exitCode}`);
+		statsParts.push(`${localize("Exit", "Çıkış kodu")}: ${details.exitCode}`);
 	}
 	return statsParts;
 }
@@ -638,7 +639,7 @@ export function createShellRenderer<TArgs>(config: ShellRendererConfig<TArgs>) {
 									{ expanded },
 								),
 							},
-							{ label: uiTheme.fg("toolTitle", "Output"), content: outputLines },
+							{ label: uiTheme.fg("toolTitle", localize("Output", "Çıktı")), content: outputLines },
 						],
 					};
 

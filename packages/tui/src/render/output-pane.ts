@@ -7,6 +7,7 @@ import type { Component } from "../tui";
 import { getPaddingX } from "../utils";
 import { truncateToVisualLines } from "../chrome/visual-truncate";
 import { getSixelLineMask } from "./sixel";
+import { localize } from "../locale";
 import { formatExpandHint, replaceTabs } from "./render-utils";
 
 /** Which side of an output stream remains visible when the pane is capped. */
@@ -53,8 +54,11 @@ export function splitTerminalOutputLines(text: string): string[] {
 
 function defaultHiddenLabel(hidden: number, shown: number, total: number, edge: OutputPaneEdge): string {
 	return edge === "tail"
-		? `… (${hidden} earlier lines, showing ${shown} of ${total})`
-		: `… ${hidden} more line${hidden === 1 ? "" : "s"}`;
+		? localize(
+				`… (${hidden} earlier lines, showing ${shown} of ${total})`,
+				`… (${total} satırın son ${shown} satırı)`,
+			)
+		: localize(`… ${hidden} more line${hidden === 1 ? "" : "s"}`, `… ${hidden} satır daha`);
 }
 
 /**

@@ -40,12 +40,7 @@ import { taskCardAgentIds } from "../tools/task";
 import { TODO_STRIKE_TOTAL_FRAMES, type TodoToolDetails } from "../tools/todo";
 import { isNativeRendering } from "../native/state";
 import { isWaitingPollDetails } from "../tools/wait";
-import {
-	DEFAULT_TERMINAL_PREVIEW_LINES,
-	formatStatusIcon,
-	replaceTabs,
-	resolveImageOptions,
-} from "../render/render-utils";
+import { formatStatusIcon, getToolPreviewLines, replaceTabs, resolveImageOptions } from "../render/render-utils";
 import type { XdevMountedState } from "../tools/xdev";
 import { isFramedBlockComponent, markFramedBlockComponent, renderStatusLine, WidthAwareText } from "../render/index";
 import { cachedPngConversion, convertImageToPngShared, imagePayloadKey } from "./image-loading";
@@ -117,7 +112,7 @@ type ToolRendererStage = "call" | "result";
  * clamp of the same size; `children` leaves the clamping to the body's own previews).
  */
 function cardPreview(preview: NativeToolView["preview"]): TspPreview | undefined {
-	if (preview === undefined) return { lines: DEFAULT_TERMINAL_PREVIEW_LINES };
+	if (preview === undefined) return { lines: getToolPreviewLines() };
 	if (preview === "none" || preview === "children") return undefined;
 	if (preview !== "auto" && "tail" in preview) return { lines: preview.tail };
 	return preview;
@@ -1095,7 +1090,7 @@ export class ToolExecutionComponent extends Container {
 		const intent = isRecord(this.#args) ? this.#args[INTENT_FIELD] : undefined;
 		const badges = [...(head?.badges ?? []), ...(late.chip ? [late.chip] : [])];
 		const title: TspText = head?.title ?? (head ? this.#toolLabel : (view.head ?? this.#toolLabel));
-		const preview = view.preview ?? (inline ? "none" : { lines: DEFAULT_TERMINAL_PREVIEW_LINES });
+		const preview = view.preview ?? (inline ? "none" : { lines: getToolPreviewLines() });
 		return node(
 			"tool",
 			{
@@ -1120,7 +1115,7 @@ export class ToolExecutionComponent extends Container {
 				frame: inline ? "inline" : "card",
 				collapsible: hasBody,
 				collapsed: hasBody ? this.#nativeCollapsed(status, view) : undefined,
-				preview: hasBody ? (preview === "auto" ? { lines: DEFAULT_TERMINAL_PREVIEW_LINES } : preview) : undefined,
+				preview: hasBody ? (preview === "auto" ? { lines: getToolPreviewLines() } : preview) : undefined,
 				tools: view.tools,
 				tone: view.tone,
 			},
@@ -1863,13 +1858,13 @@ export class ToolExecutionComponent extends Container {
 				context.output = output;
 			}
 			context.expanded = this.#expanded;
-			context.previewLines = DEFAULT_TERMINAL_PREVIEW_LINES;
+			context.previewLines = getToolPreviewLines();
 			context.timeout = normalizeTimeoutSeconds(isRecord(this.#args) ? this.#args.timeout : undefined, 3600);
 		} else if (this.#toolName === "eval" && this.#result) {
 			const output = this.#getTextOutput().trimEnd();
 			context.output = output;
 			context.expanded = this.#expanded;
-			context.previewLines = DEFAULT_TERMINAL_PREVIEW_LINES;
+			context.previewLines = getToolPreviewLines();
 		} else if (this.#toolName === "task") {
 			// Once a result snapshot exists the task renderer's `renderResult`
 			// draws every dispatched agent as a progress/result line, so tell

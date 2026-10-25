@@ -12,6 +12,7 @@ import {
 import {
 	cfgShortcutBar,
 	cfgSimpleMode,
+	cfgToolOutput,
 	cfgUiLanguage,
 } from "@oh-my-pi/pi-coding-agent/slash-commands/simple-mode-settings";
 import type { TuiSlashCommandRuntime } from "@oh-my-pi/pi-coding-agent/slash-commands/types";
@@ -33,6 +34,7 @@ describe("simple mode", () => {
 		expect(cfgSimpleMode.get(settings)).toBe(true);
 		expect(cfgShortcutBar.get(settings)).toBe(true);
 		expect(cfgUiLanguage.get(settings)).toBe("tr");
+		expect(cfgToolOutput.get(settings)).toBe("folded");
 	});
 
 	it("/gelismis toggles the setting and reports the new mode", async () => {

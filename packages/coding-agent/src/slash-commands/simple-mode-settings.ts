@@ -5,6 +5,7 @@
  */
 import { effect, register } from "../config/registry";
 import { setUiLanguage } from "@oh-my-pi/pi-tui/locale";
+import { DEFAULT_TERMINAL_PREVIEW_LINES, setToolPreviewLines } from "@oh-my-pi/pi-tui/render";
 
 /** PandaCode simple mode: the slash-command picker lists only everyday builtins. */
 export const cfgSimpleMode = register({
@@ -51,3 +52,31 @@ export const cfgUiLanguage = register({
 });
 
 effect(cfgUiLanguage, setUiLanguage);
+
+/**
+ * Output rows a folded tool card shows. Three proved too few: a trailing shell
+ * notice could fill the whole preview and hide the command's own output.
+ */
+const FOLDED_TOOL_PREVIEW_LINES = 5;
+
+/** PandaCode tool output folding: how many output rows a folded tool card shows. */
+export const cfgToolOutput = register({
+	id: "pandacode.toolOutput",
+	type: "enum",
+	values: ["folded", "normal"] as const,
+	default: "folded",
+	ui: {
+		tab: "interaction",
+		group: "PandaCode",
+		label: "Araç Çıktıları",
+		description: "Araç kartları katlıyken kaç satır çıktı gösterilsin; Ctrl+O hepsini açar",
+		options: [
+			{ value: "folded", label: "Katlı", description: `Son ${FOLDED_TOOL_PREVIEW_LINES} satır` },
+			{ value: "normal", label: "Normal", description: `Son ${DEFAULT_TERMINAL_PREVIEW_LINES} satır (omp)` },
+		],
+	},
+});
+
+effect(cfgToolOutput, value =>
+	setToolPreviewLines(value === "folded" ? FOLDED_TOOL_PREVIEW_LINES : DEFAULT_TERMINAL_PREVIEW_LINES),
+);

@@ -17,6 +17,7 @@ import { formatModelRoleAlias, roleCandidatePool } from "../../config/model-role
 import { resolveModelRoleValue } from "../../config/model-resolver";
 import { isSettingsInitialized, settings } from "../../config/settings";
 import { InternalUrlRouter, resolveLocalRoot } from "../../internal-urls";
+import { localize } from "@oh-my-pi/pi-tui/locale";
 import { ApprovalDialogComponent } from "@oh-my-pi/pi-tui/overlays/approval-dialog";
 import { AskDialogComponent } from "@oh-my-pi/pi-tui/overlays/ask-dialog";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
@@ -2739,7 +2740,12 @@ export class InputController {
 			return;
 		}
 		this.setToolsExpanded(!this.ctx.toolOutputExpanded);
-		this.ctx.showStatus(`Tool output expansion: ${this.ctx.toolOutputExpanded ? "enabled" : "disabled"}`);
+		this.ctx.showStatus(
+			localize(
+				`Tool output expansion: ${this.ctx.toolOutputExpanded ? "enabled" : "disabled"}`,
+				`Araç çıktıları: ${this.ctx.toolOutputExpanded ? "açık" : "katlı"}`,
+			),
+		);
 	}
 
 	toggleToolActivityVisibility(): void {

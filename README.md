@@ -15,6 +15,7 @@ omp is a powerful coding agent harness with well over a hundred commands. PandaC
 | **Simple mode** | The `/` picker lists 16 everyday commands instead of the full set. Nothing is removed: every omp command still runs when typed, and `/gelismis` (or `/advanced`) toggles the full list. |
 | **Command palette** | <kbd>Ctrl</kbd>+<kbd>K</kbd> on an empty prompt opens a searchable list of commands with their descriptions. With text in the prompt, <kbd>Ctrl</kbd>+<kbd>K</kbd> still deletes to the end of the line. |
 | **Shortcut bar** | One dim row under the prompt shows the keys that matter right now: commands, model, thinking level, history and exit while idle; stop and details while the agent works. |
+| **Folded tool output** | Shell and code-run tool cards show only the last 5 lines of their output (edit diffs keep their own preview); <kbd>Ctrl</kbd>+<kbd>O</kbd> opens them all. `/settings` → PandaCode → *Araç Çıktıları* → *Normal* restores omp's 10 lines. |
 | **Turkish interface** | Command descriptions, tips, the shortcut bar, selectors and setup headings are in Turkish by default. Switch with `/settings` → PandaCode → *Arayüz Dili* (Turkish / English). |
 | **Three-step setup** | First run asks only for sign-in, model and theme. |
 | **`pandacode` command** | A launcher that runs this checkout from any folder, next to an installed `omp` without touching it. |
